@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "SmartThreat",
+    "slug": "smart-threat",
+    "version": "1.0.0",
+    "scheme": "smartthreat",
+    "orientation": "portrait",
+    "backgroundColor": "#F4F1E9",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "backgroundColor": "#F4F1E9"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.smartthreat.app"
+    },
+    "android": {
+      "package": "com.smartthreat.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#F4F1E9"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
