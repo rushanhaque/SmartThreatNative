@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { View, Text, ScrollView, TextInput, Pressable, StyleSheet, useWindowDimensions } from 'react-native'
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -221,6 +221,43 @@ export default function DevicesScreen() {
   )
 }
 
+/* ── Evidence pills ──────────────────────────────────────────────────────────
+   The pill row is the heaviest part of a card and its inputs barely change,
+   while RSSI drifts every second. Memoising it on signal identity keeps the
+   list's per-tick work down to the readout and the sparkline. */
+
+const SignalPills = memo(
+  function SignalPills({
+    signals,
+    throughputKbps,
+    threat,
+  }: {
+    signals: Device['signals']
+    throughputKbps: number
+    threat: boolean
+  }) {
+    return (
+      <View style={s.cardPills}>
+        {signals.includes('camera-oui')    && <Pill icon="camera" solid={threat}>Camera OUI</Pill>}
+        {signals.includes('streaming')     && <Pill>{throughput(throughputKbps)}</Pill>}
+        {signals.includes('rtsp-open')     && <Pill>554 open</Pill>}
+        {signals.includes('findmy')        && <Pill icon="tag">FindMy</Pill>}
+        {signals.includes('travelling')    && <Pill solid>Following you</Pill>}
+        {signals.includes('tracker-proto') && <Pill tone="muted">Tracker</Pill>}
+        {signals.includes('hidden-ssid')   && <Pill tone="muted">Hidden SSID</Pill>}
+        {signals.includes('new-tonight')   && <Pill tone="muted">New tonight</Pill>}
+        {signals.includes('low-variance')  && <Pill tone="muted">Fixed distance</Pill>}
+      </View>
+    )
+  },
+  (a, b) =>
+    a.threat === b.threat &&
+    // throughput only shows bucketed, so ignore sub-kbps jitter
+    Math.round(a.throughputKbps / 50) === Math.round(b.throughputKbps / 50) &&
+    a.signals.length === b.signals.length &&
+    a.signals.every((s, i) => s === b.signals[i]),
+)
+
 /* ── Device card ─────────────────────────────────────────────────────────── */
 
 function DeviceCard({ device: d }: { device: Device }) {
@@ -283,17 +320,11 @@ function DeviceCard({ device: d }: { device: Device }) {
 
           {hasStrip && (
             <View style={s.cardStrip}>
-              <View style={s.cardPills}>
-                {d.signals.includes('camera-oui')    && <Pill icon="camera" solid={tone === 'threat'}>Camera OUI</Pill>}
-                {d.signals.includes('streaming')     && <Pill>{throughput(d.throughputKbps)}</Pill>}
-                {d.signals.includes('rtsp-open')     && <Pill>554 open</Pill>}
-                {d.signals.includes('findmy')        && <Pill icon="tag">FindMy</Pill>}
-                {d.signals.includes('travelling')    && <Pill solid>Following you</Pill>}
-                {d.signals.includes('tracker-proto') && <Pill tone="muted">Tracker</Pill>}
-                {d.signals.includes('hidden-ssid')   && <Pill tone="muted">Hidden SSID</Pill>}
-                {d.signals.includes('new-tonight')   && <Pill tone="muted">New tonight</Pill>}
-                {d.signals.includes('low-variance')  && <Pill tone="muted">Fixed distance</Pill>}
-              </View>
+              <SignalPills
+                signals={d.signals}
+                throughputKbps={d.throughputKbps}
+                threat={tone === 'threat'}
+              />
               <Sparkline data={d.rssiTrail} width={54} height={18} strokeWidth={1.6} fill />
             </View>
           )}

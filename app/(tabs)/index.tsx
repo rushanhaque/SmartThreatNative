@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { View, Text, ScrollView, StyleSheet, useWindowDimensions } from 'react-native'
 import Animated, {
   useAnimatedScrollHandler,
@@ -9,12 +9,12 @@ import { useRouter } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 import { ApertureRing } from '@/components/ApertureRing'
 import { EvidenceStack, Sparkline } from '@/components/viz'
-import { Button, Label, LiveDot, Panel, PanelHeader, Pill, Row, SectionTitle, Tone } from '@/components/ui'
+import { Bar, Button, Label, LiveDot, Panel, PanelHeader, Pill, Row, SectionTitle, Tone } from '@/components/ui'
 import { Surface, Orb, Rule } from '@/components/Surface'
 import { Counter, Float, Parallax, Pressable3D, Reveal, ScrollReveal, Stagger } from '@/components/motion'
 import { Icon, type IconName } from '@/components/Icon'
 import { Logomark } from '@/components/Brand'
-import { actions, selDevices, selFrames, selHw, selPrefs, selVerdict, selPlace, selScanning, useSelect } from '@/engine/store'
+import { actions, selDevices, selFrames, selHw, selPrefs, selVerdict, selPlace, selScanning, selDeepScan, useSelect } from '@/engine/store'
 import { CLASS_META } from '@/engine/fusion'
 import { SCENARIOS } from '@/engine/simulator'
 import type { FusionChannel, Reason } from '@/engine/types'
@@ -42,6 +42,7 @@ export default function ShieldScreen() {
   const hw       = useSelect(selHw)
   const place    = useSelect(selPlace)
   const scanning = useSelect(selScanning)
+  const deepScan = useSelect(selDeepScan)
   const insets   = useSafeAreaInsets()
   const router   = useRouter()
   const { height: VH } = useWindowDimensions()
@@ -59,6 +60,35 @@ export default function ShieldScreen() {
   const rfTrail  = useMemo(() => frames.slice(-40).map((f) => f.rfDbm), [frames])
   const emfTrail = useMemo(() => frames.slice(-40).map((f) => f.emfMg), [frames])
   const luxTrail = useMemo(() => frames.slice(-40).map((f) => f.lux), [frames])
+
+  /* Escalation is the one moment worth interrupting the user for. Fire a
+     heavier haptic only when the class gets *worse*, never on recovery and
+     never on every re-fuse. */
+  const prevKlass = useRef(verdict.klass)
+  useEffect(() => {
+    const rank = { safe: 0, caution: 1, threat: 2 }
+    if (rank[verdict.klass] > rank[prevKlass.current] && prefs.channels.haptic) {
+      Haptics.notificationAsync(
+        verdict.klass === 'threat'
+          ? Haptics.NotificationFeedbackType.Error
+          : Haptics.NotificationFeedbackType.Warning,
+      ).catch(() => {})
+    }
+    prevKlass.current = verdict.klass
+  }, [verdict.klass, prefs.channels.haptic])
+
+  /* Deep scan owns its own canceller so leaving the screen mid-sweep cannot
+     leave an interval running. */
+  const cancelScan = useRef<(() => void) | null>(null)
+  useEffect(() => () => cancelScan.current?.(), [])
+
+  const onDeepScan = () => {
+    if (deepScan.running) return
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {})
+    cancelScan.current = actions.startDeepScan(() => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {})
+    })
+  }
 
   return (
     <Tone value={verdict.klass}>
@@ -109,17 +139,33 @@ export default function ShieldScreen() {
               </Float>
             </Reveal>
 
-            <Reveal kind="up" delay={280} duration={760}>
+            <Reveal kind="up" delay={280} duration={760} style={s.actions}>
               <Button
-                style={{ marginTop: 24 }}
                 size="lg"
-                variant={prefs.scanning ? 'quiet' : 'accent'}
+                variant="accent"
+                icon={deepScan.running ? 'scan' : 'target'}
+                disabled={deepScan.running}
+                onPress={onDeepScan}
+                style={{ flex: 1 }}
+              >
+                {deepScan.running
+                  ? `Sweeping ${Math.round(deepScan.progress * 100)}%`
+                  : 'Deep scan'}
+              </Button>
+              <Button
+                size="lg"
+                variant="quiet"
                 icon={prefs.scanning ? 'pause' : 'play'}
                 onPress={() => { tap(); actions.toggleScanning() }}
-              >
-                {prefs.scanning ? 'Pause scanning' : 'Resume scanning'}
-              </Button>
+                accessibilityLabel={prefs.scanning ? 'Pause scanning' : 'Resume scanning'}
+              />
             </Reveal>
+
+            {deepScan.running ? (
+              <View style={s.scanBar}>
+                <Bar value={deepScan.progress} height={4} />
+              </View>
+            ) : null}
           </Parallax>
 
           <Stagger base={120} step={80}>
@@ -332,6 +378,8 @@ const s = StyleSheet.create({
   battery: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   batteryText: { fontFamily: F.monoSemi, fontSize: 11.5, color: C.ink2 },
 
+  actions: { flexDirection: 'row', gap: 10, marginTop: 24, alignSelf: 'stretch' },
+  scanBar: { marginTop: 14, alignSelf: 'stretch' },
   hero: { alignItems: 'center', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 30 },
   score: {
     fontFamily: F.semibold,

@@ -23,12 +23,21 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { StyleSheet, View, Pressable, Text, type StyleProp, type ViewStyle, type TextStyle } from 'react-native'
+import {
+  StyleSheet,
+  View,
+  Pressable,
+  TextInput,
+  type PressableProps,
+  type StyleProp,
+  type ViewStyle,
+  type TextStyle,
+} from 'react-native'
 import Animated, {
   Easing,
   Extrapolation,
   interpolate,
-  runOnJS,
+  useAnimatedProps,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -240,6 +249,9 @@ export function Pressable3D({
   containerStyle,
   scaleTo = 0.955,
   haptic,
+  accessibilityRole,
+  accessibilityLabel,
+  accessibilityState,
 }: {
   children?: ReactNode
   onPress?: () => void
@@ -250,6 +262,9 @@ export function Pressable3D({
   containerStyle?: StyleProp<ViewStyle>
   scaleTo?: number
   haptic?: () => void
+  accessibilityRole?: PressableProps['accessibilityRole']
+  accessibilityLabel?: string
+  accessibilityState?: PressableProps['accessibilityState']
 }) {
   const p = useSharedValue(0)
 
@@ -269,6 +284,9 @@ export function Pressable3D({
       onPress={onPress}
       disabled={disabled || !onPress}
       style={containerStyle}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityState}
       onPressIn={() => {
         p.value = withSpring(1, SPRING.snappy)
         haptic?.()
@@ -284,6 +302,15 @@ export function Pressable3D({
 
 /* ── Counter — odometer for the score readout ────────────────────────────── */
 
+/**
+ * Odometer that ticks entirely on the UI thread.
+ *
+ * The obvious implementation — a shared value plus `runOnJS(setState)` in a
+ * derived value — re-renders React on every animation frame, roughly sixty
+ * times a second, for a number that changes once. Driving an uneditable
+ * TextInput through `useAnimatedProps` writes the text natively instead, so
+ * the count costs zero React renders.
+ */
 export function Counter({
   value,
   style,
@@ -294,19 +321,42 @@ export function Counter({
   duration?: number
 }) {
   const v = useSharedValue(value)
-  const [shown, setShown] = useState(Math.round(value))
 
   useEffect(() => {
     v.value = withTiming(value, { duration, easing: EASE.outExpo })
   }, [value, duration, v])
 
-  useDerivedValue(() => {
+  const animatedProps = useAnimatedProps(() => {
     'worklet'
-    runOnJS(setShown)(Math.round(v.value))
+    return { text: String(Math.round(v.value)) } as never
   })
 
-  return <Text style={style}>{shown}</Text>
+  return (
+    <AnimatedTextInput
+      editable={false}
+      // iOS needs a defaultValue for the first paint; after that the native
+      // `text` prop above drives it.
+      defaultValue={String(Math.round(value))}
+      style={[counterStyles.base, style]}
+      accessibilityRole="text"
+      accessibilityLabel={String(Math.round(value))}
+      animatedProps={animatedProps}
+    />
+  )
 }
+
+const AnimatedTextInput = Animated.createAnimatedComponent(TextInput)
+
+const counterStyles = StyleSheet.create({
+  base: {
+    padding: 0,
+    margin: 0,
+    // TextInput adds platform chrome a Text node does not.
+    borderWidth: 0,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+})
 
 /* ── Float — perpetual drift ─────────────────────────────────────────────── */
 

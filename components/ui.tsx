@@ -90,6 +90,7 @@ export function Button({
   disabled,
   children,
   style,
+  accessibilityLabel,
 }: {
   variant?: ButtonVariant
   size?: keyof typeof SIZES
@@ -99,6 +100,8 @@ export function Button({
   disabled?: boolean
   children?: ReactNode
   style?: StyleProp<ViewStyle>
+  /** Required when the button is icon-only — there is no text to announce. */
+  accessibilityLabel?: string
 }) {
   const t = useTone()
   const s = SIZES[size]
@@ -126,12 +129,20 @@ export function Button({
     : C.ink
 
   return (
-    <Pressable3D onPress={onPress} disabled={disabled} style={[{ opacity: disabled ? 0.4 : 1 }, style]}>
+    <Pressable3D
+      onPress={onPress}
+      disabled={disabled}
+      style={[{ opacity: disabled ? 0.4 : 1 }, style]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? (typeof children === 'string' ? children : undefined)}
+      accessibilityState={{ disabled: !!disabled }}
+    >
       <View
         style={[
           {
             height: s.h,
-            paddingHorizontal: s.px,
+            paddingHorizontal: children ? s.px : 0,
+            width: children ? undefined : s.h,
             borderRadius: s.r,
             flexDirection: 'row',
             alignItems: 'center',
@@ -142,9 +153,11 @@ export function Button({
         ]}
       >
         {icon ? <Icon name={icon} size={s.icon} color={fg} strokeWidth={2} /> : null}
-        <Text style={{ fontFamily: F.semibold, fontSize: s.fs, color: fg, letterSpacing: -0.2 }}>
-          {children}
-        </Text>
+        {children ? (
+          <Text style={{ fontFamily: F.semibold, fontSize: s.fs, color: fg, letterSpacing: -0.2 }}>
+            {children}
+          </Text>
+        ) : null}
         {iconAfter ? <Icon name={iconAfter} size={s.icon} color={fg} strokeWidth={2} /> : null}
       </View>
     </Pressable3D>

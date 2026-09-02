@@ -2,7 +2,7 @@
   "expo": {
     "name": "SmartThreat",
     "slug": "smart-threat",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "scheme": "smartthreat",
     "orientation": "portrait",
     "backgroundColor": "#ECECE4",

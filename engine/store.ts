@@ -1,3 +1,4 @@
+import { AppState } from 'react-native'
 import { create } from 'zustand'
 import { fuse } from './fusion'
 import { buildDevices, driftDevices, nextFrame, placeFor, seedFrames } from './simulator'
@@ -15,9 +16,20 @@ export interface State {
   incidents: Incident[]
   sessions: ScanSession[]
   prefs: Prefs
+  deepScan: DeepScanState
+}
+
+export interface DeepScanState {
+  running: boolean
+  /** 0-1 */
+  progress: number
+  startedAt: number | null
 }
 
 const FRAME_CAP = 240
+
+/** How long a deep sweep runs, in ms. */
+export const DEEP_SCAN_MS = 6000
 
 const DEFAULT_PREFS: Prefs = {
   sensitivity: 'balanced',
@@ -128,6 +140,7 @@ function buildInitialState(): State {
     frames,
     verdict,
     prefs,
+    deepScan: { running: false, progress: 0, startedAt: null },
     ...history,
   }
 }
@@ -163,6 +176,60 @@ export const actions = {
 
   toggleScanning() {
     actions.setPrefs({ scanning: !get().prefs.scanning })
+  },
+
+  /* ── Deep scan ──────────────────────────────────────────────────────────
+     A timed sweep that records what it saw. History has always invited the
+     user to "run a deep scan"; this is the action behind that sentence.
+     Returns a canceller so a screen unmounting mid-scan cannot leak. */
+  startDeepScan(onDone?: (session: ScanSession) => void) {
+    if (get().deepScan.running) return () => {}
+
+    const startedAt = Date.now()
+    const DURATION = DEEP_SCAN_MS
+    let peak = get().verdict.score
+    let peakKlass = get().verdict.klass
+
+    set({ deepScan: { running: true, progress: 0, startedAt } })
+
+    const step = setInterval(() => {
+      const s = get()
+      const elapsed = Date.now() - startedAt
+      // Track the worst reading observed across the whole sweep, which is the
+      // number worth recording — not whatever happened to be on screen at the end.
+      if (s.verdict.score > peak) {
+        peak = s.verdict.score
+        peakKlass = s.verdict.klass
+      }
+      set({
+        deepScan: { running: true, progress: Math.min(1, elapsed / DURATION), startedAt },
+      })
+
+      if (elapsed >= DURATION) {
+        clearInterval(step)
+        const s2 = get()
+        const session: ScanSession = {
+          id: `sess-${startedAt}`,
+          place: s2.place,
+          startedAt,
+          durationSec: Math.round(DURATION / 1000),
+          devicesSeen: s2.devices.length,
+          peakScore: Math.round(peak),
+          klass: peakKlass,
+          verdictNote: `Deep sweep of ${s2.devices.length} radios. Peak ${Math.round(peak)}.`,
+        }
+        set({
+          sessions: [session, ...s2.sessions],
+          deepScan: { running: false, progress: 1, startedAt: null },
+        })
+        onDone?.(session)
+      }
+    }, 120)
+
+    return () => {
+      clearInterval(step)
+      set({ deepScan: { running: false, progress: 0, startedAt: null } })
+    }
   },
 }
 
@@ -203,11 +270,27 @@ export const selKlass    = (s: State) => s.verdict.klass
 export const selScanning = (s: State) => s.prefs.scanning
 export const selIncidents = (s: State) => s.incidents
 export const selSessions  = (s: State) => s.sessions
+export const selDeepScan  = (s: State) => s.deepScan
 
 export function startTelemetry() {
   if (timer !== null) return () => stopTelemetry()
   timer = setInterval(tick, 1000)
-  return () => stopTelemetry()
+
+  // Simulating radio telemetry while the app is backgrounded burns battery for
+  // frames nobody will see. Suspend on background, resume on foreground.
+  const sub = AppState.addEventListener('change', (next) => {
+    if (next === 'active') {
+      if (timer === null) timer = setInterval(tick, 1000)
+    } else if (timer !== null) {
+      clearInterval(timer)
+      timer = null
+    }
+  })
+
+  return () => {
+    sub.remove()
+    stopTelemetry()
+  }
 }
 
 export function stopTelemetry() {

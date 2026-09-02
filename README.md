@@ -1,5 +1,7 @@
 # SmartThreat — Companion App
 
+**v2.0**
+
 React Native companion for **PG-1**, a wearable that watches the radio spectrum for
 surveillance devices — hidden cameras, BLE trackers, and RF bugs — and tells you
 *why* it reached its conclusion.
@@ -58,11 +60,26 @@ GSAP is a DOM library and cannot animate native views. Every animation here is a
 | `device/[id]` | Per-device RSSI history, evidence, trust controls |
 | `sensors` | Gauges, modelled band occupancy, full sensor traces |
 
+## Performance
+
+Steady state is a 500 ms telemetry loop that re-fuses 240 frames and drifts
+every device, so render cost is the thing that matters.
+
+- **The score counter runs on the UI thread.** A shared value plus
+  `runOnJS(setState)` re-renders React ~60×/sec for a number that changes
+  once; driving an uneditable TextInput through `useAnimatedProps` writes the
+  text natively for zero React renders.
+- **Blurred tabs are frozen** (native only — `react-native-screens` does not
+  manage screen visibility on web, where a frozen screen stays painted).
+- **Telemetry suspends when backgrounded** via AppState.
+- **The evidence-pill row is memoised** on signal identity, so a card's
+  per-tick work is just the readout and the sparkline.
+
 ## Architecture
 
 ```
 app/            expo-router file tree
-components/     Glass, motion, viz, ApertureRing, TabBar, Icon, Brand, ui
+components/     Surface, motion, viz, ApertureRing, TabBar, Icon, Brand, ui
 engine/         types · fusion · simulator · store   (pure TS, no RN imports)
 lib/            colors · type · format · device
 ```
