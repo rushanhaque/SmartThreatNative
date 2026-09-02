@@ -5,12 +5,14 @@
     "version": "1.0.0",
     "scheme": "smartthreat",
     "orientation": "portrait",
-    "backgroundColor": "#F4F1E9",
+    "backgroundColor": "#F5F7FD",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
     "splash": {
-      "backgroundColor": "#F4F1E9"
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F7FD"
     },
     "ios": {
       "supportsTablet": false,
@@ -18,12 +20,15 @@
     },
     "android": {
       "package": "com.smartthreat.app",
+      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
-        "backgroundColor": "#F4F1E9"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F5F7FD"
       }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router"

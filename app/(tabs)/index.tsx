@@ -1,498 +1,388 @@
-import React, { useEffect, useRef } from 'react'
-import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Animated,
-} from 'react-native'
+import { useMemo } from 'react'
+import { View, Text, ScrollView, StyleSheet, useWindowDimensions } from 'react-native'
+import Animated, {
+  useAnimatedScrollHandler,
+  useSharedValue,
+} from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { ApertureRing } from '../../components/ApertureRing'
-import { Button, Divider, Label, Panel, PanelHeader, Pill, hexAlpha } from '../../components/ui'
-import { C, TONE_COLORS } from '../../lib/colors'
-import { pct, proximityLabel } from '../../lib/format'
-import { useStore, actions } from '../../engine/store'
-import { CLASS_META, WEIGHTS } from '../../engine/fusion'
-import { SCENARIOS } from '../../engine/simulator'
-import type { FusionChannel, Reason } from '../../engine/types'
+import * as Haptics from 'expo-haptics'
+import { ApertureRing } from '@/components/ApertureRing'
+import { EvidenceStack, Sparkline } from '@/components/viz'
+import { Button, Label, LiveDot, Panel, PanelHeader, Pill, Row, SectionTitle, Tone } from '@/components/ui'
+import { Glass, GradientOrb, SpectrumRule } from '@/components/Glass'
+import { Counter, Float, Parallax, Pressable3D, Reveal, ScrollReveal, Stagger } from '@/components/motion'
+import { Icon, type IconName } from '@/components/Icon'
+import { Logomark } from '@/components/Brand'
+import { actions, selDevices, selFrames, selHw, selPrefs, selVerdict, selPlace, selScanning, useSelect } from '@/engine/store'
+import { CLASS_META } from '@/engine/fusion'
+import { SCENARIOS } from '@/engine/simulator'
+import type { FusionChannel, Reason } from '@/engine/types'
+import { pct } from '@/lib/format'
+import { C, RADIUS, TONES, alpha } from '@/lib/colors'
+import { F, T } from '@/lib/type'
 
-const CHANNEL_LABEL: Record<FusionChannel, string> = {
-  camera: 'Optical',
-  tracker: 'Tracker',
-  rf: 'RF',
-  emf: 'EMF',
-  dark: 'Ambient',
+const AScroll = Animated.createAnimatedComponent(ScrollView)
+
+const CHANNEL_ICON: Record<FusionChannel, IconName> = {
+  camera: 'camera',
+  tracker: 'tag',
+  rf: 'radio',
+  emf: 'bolt',
+  dark: 'moon',
 }
+
+const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {})
 
 export default function ShieldScreen() {
-  const insets = useSafeAreaInsets()
-  const router = useRouter()
-  const verdict = useStore((s) => s.verdict)
-  const devices = useStore((s) => s.devices)
-  const prefs = useStore((s) => s.prefs)
-  const frames = useStore((s) => s.frames)
+  const verdict  = useSelect(selVerdict)
+  const devices  = useSelect(selDevices)
+  const frames   = useSelect(selFrames)
+  const prefs    = useSelect(selPrefs)
+  const hw       = useSelect(selHw)
+  const place    = useSelect(selPlace)
+  const scanning = useSelect(selScanning)
+  const insets   = useSafeAreaInsets()
+  const router   = useRouter()
+  const { height: VH } = useWindowDimensions()
 
-  const meta = CLASS_META[verdict.klass]
-  const { accent } = TONE_COLORS[verdict.klass]
-  const top = verdict.reasons.slice(0, 3)
+  const scrollY = useSharedValue(0)
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y
+  })
+
+  const meta    = CLASS_META[verdict.klass]
+  const tone    = TONES[verdict.klass]
+  const top     = verdict.reasons.slice(0, 3)
   const unknown = devices.filter((d) => d.trust === 'unknown').length
-  const last = frames[frames.length - 1]
-
-  // Animated score counter
-  const scoreAnim = useRef(new Animated.Value(verdict.score)).current
-  useEffect(() => {
-    Animated.spring(scoreAnim, { toValue: verdict.score, useNativeDriver: false, tension: 30, friction: 10 }).start()
-  }, [verdict.score])
-
-  // Slide-in entrance animation
-  const entrance = useRef(new Animated.Value(0)).current
-  useEffect(() => {
-    Animated.spring(entrance, { toValue: 1, useNativeDriver: true, tension: 60, friction: 14, delay: 60 }).start()
-  }, [])
-
-  const entryStyle = {
-    opacity: entrance,
-    transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }],
-  }
+  const last    = frames[frames.length - 1]
+  const rfTrail  = useMemo(() => frames.slice(-40).map((f) => f.rfDbm), [frames])
+  const emfTrail = useMemo(() => frames.slice(-40).map((f) => f.emfMg), [frames])
+  const luxTrail = useMemo(() => frames.slice(-40).map((f) => f.lux), [frames])
 
   return (
-    <View style={[s.screen, { backgroundColor: hexAlpha(accent, 0.04) }]}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 24 + insets.bottom }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Hero ─────────────────────────────────────────────────── */}
-        <View style={[s.hero, { paddingTop: insets.top + 20 }]}>
-          <ApertureRing score={verdict.score} klass={verdict.klass} scanning={prefs.scanning}>
-            <Animated.Text style={s.scoreNumber}>
-              {Math.round(verdict.score)}
-            </Animated.Text>
-            <View style={s.statusRow}>
-              <View style={[s.statusDot, { backgroundColor: accent }]} />
-              <Text style={[s.statusLabel, { color: accent }]}>{meta.label}</Text>
-            </View>
-            <Text style={s.confLabel}>CONF {pct(verdict.confidence)}</Text>
-          </ApertureRing>
-
-          <Animated.View style={[s.heroText, entryStyle]}>
-            <Text style={s.verdictVerb}>{meta.verb}</Text>
-
-            <TouchableOpacity
-              onPress={() => actions.toggleScanning()}
-              activeOpacity={0.8}
-              style={[
-                s.scanBtn,
-                {
-                  backgroundColor: prefs.scanning ? C.surface3 : accent,
-                  borderColor: prefs.scanning ? C.line2 : 'transparent',
-                },
-              ]}
-            >
-              <Text style={[s.scanBtnText, { color: prefs.scanning ? C.ink2 : '#FFFFFF' }]}>
-                {prefs.scanning ? 'Pause scanning' : 'Resume scanning'}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
+    <Tone value={verdict.klass}>
+      <View style={s.root}>
+        {/* ── Floating glass header ─────────────────────────────────── */}
+        <View style={[s.headerWrap, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
+          <Reveal kind="down" duration={640}>
+            <Glass variant="card" radius={RADIUS.lg} style={s.header}>
+              <View style={s.headerRow}>
+                <Logomark size={24} active />
+                <View style={s.headerMid}>
+                  <Text style={s.headerPlace} numberOfLines={1}>{place}</Text>
+                  <LiveDot label={scanning ? 'SCANNING' : 'PAUSED'} active={scanning} />
+                </View>
+                <View style={s.battery}>
+                  <Icon name="battery" size={14} color={C.ink3} strokeWidth={1.9} />
+                  <Text style={s.batteryText}>{hw.batteryPct}%</Text>
+                </View>
+              </View>
+            </Glass>
+          </Reveal>
         </View>
 
-        <View style={s.body}>
-          {/* ── Evidence chain ───────────────────────────────────────── */}
-          <Animated.View style={entryStyle}>
-            <Panel accent={accent} style={s.section}>
-              <PanelHeader
-                title="WHY THIS READING"
-                hint={top.length ? `${verdict.reasons.length} signals corroborate` : 'All channels at baseline'}
-                right={<Pill accent={accent}>{meta.short}</Pill>}
-              />
-              <Divider />
-              {top.length ? (
-                <View style={{ paddingHorizontal: 16, paddingVertical: 12, gap: 14 }}>
-                  {top.map((r, i) => (
-                    <EvidenceItem key={r.code + i} reason={r} accent={accent} last={i === top.length - 1} />
-                  ))}
-                </View>
-              ) : (
-                <Text style={s.emptyText}>
-                  Every channel is at baseline. The glasses keep listening — you will feel a buzz before you need to look.
-                </Text>
-              )}
-            </Panel>
-          </Animated.View>
+        <AScroll
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingTop: insets.top + 88,
+            paddingBottom: insets.bottom + 130,
+          }}
+        >
+          {/* ── Hero instrument ─────────────────────────────────────── */}
+          <Parallax scrollY={scrollY} speed={0.28} fade={340} shrink={420} style={s.hero}>
+            <Reveal kind="scale" duration={900}>
+              <Float amplitude={4} duration={5200}>
+                <ApertureRing score={verdict.score} klass={verdict.klass} scanning={prefs.scanning}>
+                  <Counter value={verdict.score} style={s.score} />
+                  <View style={s.verdictRow}>
+                    <View style={[s.verdictDot, { backgroundColor: tone.accent }]} />
+                    <Text style={[s.verdictLabel, { color: tone.accent }]}>{meta.label}</Text>
+                  </View>
+                  <View style={s.confWrap}>
+                    <SpectrumRule width={16} height={2} colors={tone.grad} />
+                    <Label>CONF {pct(verdict.confidence)}</Label>
+                  </View>
+                </ApertureRing>
+              </Float>
+            </Reveal>
 
-          {/* ── Fusion breakdown ─────────────────────────────────────── */}
-          <Animated.View style={[entryStyle, { marginTop: 10 }]}>
-            <Panel style={s.section}>
-              <PanelHeader
-                title="FUSION BREAKDOWN"
-                hint={`Σ ${verdict.score}/100`}
-              />
-              <Divider />
-              <View style={{ padding: 16, gap: 12 }}>
-                {(Object.keys(verdict.breakdown) as FusionChannel[]).map((ch) => {
-                  const v = verdict.breakdown[ch]
-                  const barW = Math.round(v * 100)
-                  return (
-                    <View key={ch}>
-                      <View style={s.channelRow}>
-                        <Text style={s.channelName}>{CHANNEL_LABEL[ch]}</Text>
-                        <Text style={s.channelWeight}>{Math.round(WEIGHTS[ch] * 100)}% wt</Text>
-                        <Text style={[s.channelVal, { color: v > 0.4 ? accent : C.ink3 }]}>
-                          {Math.round(v * 100)}
-                        </Text>
-                      </View>
-                      <View style={s.channelTrack}>
-                        <View style={[s.channelFill, { width: `${barW}%`, backgroundColor: v > 0.4 ? accent : C.ink4 }]} />
-                      </View>
-                    </View>
-                  )
-                })}
-              </View>
-            </Panel>
-          </Animated.View>
+            <Reveal kind="up" delay={280} duration={760}>
+              <Button
+                style={{ marginTop: 24 }}
+                size="lg"
+                variant={prefs.scanning ? 'quiet' : 'accent'}
+                icon={prefs.scanning ? 'pause' : 'play'}
+                onPress={() => { tap(); actions.toggleScanning() }}
+              >
+                {prefs.scanning ? 'Pause scanning' : 'Resume scanning'}
+              </Button>
+            </Reveal>
+          </Parallax>
 
-          {/* ── Sensors ──────────────────────────────────────────────── */}
-          {last && (
-            <Animated.View style={[entryStyle, { marginTop: 10 }]}>
-              <Panel style={s.section}>
-                <PanelHeader title="LIVE SENSORS" hint="500 ms cadence · on-device only" />
-                <Divider />
-                <View style={s.sensorGrid}>
-                  <SensorCell label="RF POWER" value={last.rfDbm.toFixed(0)} unit="dBm" />
+          <Stagger base={120} step={80}>
+            {/* ── Evidence chain ────────────────────────────────────── */}
+            <ScrollReveal scrollY={scrollY} viewportHeight={VH} kind="blurUp" style={s.section}>
+              <Panel edge={tone.accent}>
+                <PanelHeader
+                  title="WHY THIS READING"
+                  hint={top.length ? `${verdict.reasons.length} corroborating signals` : undefined}
+                  action={<Pill icon="target" solid>{meta.short}</Pill>}
+                />
+                {top.length ? (
+                  <View style={s.evidenceList}>
+                    {top.map((r, i) => (
+                      <EvidenceItem
+                        key={r.code + i}
+                        reason={r}
+                        last={i === top.length - 1}
+                        index={i}
+                        accent={tone.accent}
+                        grad={tone.grad}
+                      />
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={s.evidenceEmpty}>Every channel at baseline.</Text>
+                )}
+              </Panel>
+            </ScrollReveal>
+
+            {/* ── Fusion breakdown ──────────────────────────────────── */}
+            <ScrollReveal scrollY={scrollY} viewportHeight={VH} kind="blurUp" style={s.section}>
+              <Panel>
+                <PanelHeader
+                  title="FUSION BREAKDOWN"
+                  action={
+                    <Text style={[s.sigma, { color: tone.accent }]}>
+                      Σ {Math.round(verdict.score)}
+                      <Text style={s.sigmaMax}>/100</Text>
+                    </Text>
+                  }
+                />
+                <EvidenceStack breakdown={verdict.breakdown} />
+              </Panel>
+            </ScrollReveal>
+
+            {/* ── Live sensors ──────────────────────────────────────── */}
+            <ScrollReveal scrollY={scrollY} viewportHeight={VH} kind="blurUp" style={s.section}>
+              <Panel>
+                <PanelHeader
+                  title="SENSORS"
+                  action={
+                    <Pressable3D onPress={() => { tap(); router.push('/sensors') }}>
+                      <View style={s.sensorLink}>
+                        <LiveDot active={scanning} />
+                        <Icon name="arrow-up-right" size={15} color={C.ink3} strokeWidth={2} />
+                      </View>
+                    </Pressable3D>
+                  }
+                />
+                <View style={s.sensors}>
+                  <SensorCell label="RF POWER" value={last.rfDbm.toFixed(0)} unit="dBm" trail={rfTrail} />
                   <View style={s.sensorDivider} />
-                  <SensorCell label="EM FIELD" value={last.emfMg.toFixed(1)} unit="mG" />
+                  <SensorCell label="EM FIELD" value={last.emfMg.toFixed(1)} unit="mG" trail={emfTrail} />
                   <View style={s.sensorDivider} />
-                  <SensorCell label="AMBIENT" value={Math.round(last.lux).toString()} unit="lux" />
+                  <SensorCell label="AMBIENT" value={Math.round(last.lux).toString()} unit="lux" trail={luxTrail} />
                 </View>
               </Panel>
-            </Animated.View>
-          )}
+            </ScrollReveal>
 
-          {/* ── Devices row ──────────────────────────────────────────── */}
-          <Animated.View style={[entryStyle, { marginTop: 10 }]}>
-            <Panel style={s.section}>
-              <TouchableOpacity
-                onPress={() => router.push('/devices')}
-                activeOpacity={0.8}
-                style={s.devicesRow}
+            {/* ── Devices summary ───────────────────────────────────── */}
+            <ScrollReveal scrollY={scrollY} viewportHeight={VH} kind="blurUp" style={s.section}>
+              <Panel>
+                <Row
+                  onPress={() => { tap(); router.push('/devices') }}
+                  icon={
+                    <GradientOrb size={42} colors={[C.violet, C.indigo]}>
+                      <Icon name="radio" size={19} color="#FFFFFF" strokeWidth={2} />
+                    </GradientOrb>
+                  }
+                  title={`${devices.length} radios in range`}
+                  sub={unknown ? `${unknown} unidentified` : undefined}
+                  right={
+                    <View style={s.deviceRight}>
+                      {devices.some((d) => d.signals.includes('camera-oui')) && (
+                        <Pill icon="camera">CAM</Pill>
+                      )}
+                      <Icon name="chevron-right" size={17} color={C.ink4} />
+                    </View>
+                  }
+                />
+              </Panel>
+            </ScrollReveal>
+
+            {/* ── Environments rail ─────────────────────────────────── */}
+            <ScrollReveal scrollY={scrollY} viewportHeight={VH} kind="up" style={{ marginTop: 26 }}>
+              <SectionTitle right={<Text style={[T.micro, { color: C.ink4 }]}>SWIPE →</Text>}>
+                ENVIRONMENTS
+              </SectionTitle>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                decelerationRate="fast"
+                snapToInterval={218}
+                contentContainerStyle={s.rail}
               >
-                <View style={s.devIcon}>
-                  <Text style={{ fontSize: 18 }}>📡</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.devTitle}>{devices.length} radios in range</Text>
-                  <Text style={s.devSub} numberOfLines={1}>
-                    {unknown > 0
-                      ? `${unknown} unidentified · nearest ${proximityLabel(Math.max(...devices.map((d) => d.rssi)))}`
-                      : 'All matched to your trusted list'}
-                  </Text>
-                </View>
-                <Text style={{ color: C.ink4, fontSize: 18 }}>›</Text>
-              </TouchableOpacity>
-            </Panel>
-          </Animated.View>
-
-          {/* ── Demo scenarios ───────────────────────────────────────── */}
-          <View style={{ marginTop: 20 }}>
-            <View style={s.scenarioHeader}>
-              <Label>DEMO ENVIRONMENTS</Label>
-              <Text style={s.swipeHint}>SWIPE →</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
-              style={{ marginTop: 10 }}
-            >
-              {SCENARIOS.map((sc) => {
-                const active = sc.id === prefs.scenario
-                return (
-                  <TouchableOpacity
-                    key={sc.id}
-                    onPress={() => actions.setScenario(sc.id)}
-                    activeOpacity={0.8}
-                    style={[
-                      s.scenarioCard,
-                      active && { borderColor: hexAlpha(accent, 0.40), backgroundColor: hexAlpha(accent, 0.06) },
-                    ]}
-                  >
-                    <Text style={[s.scenarioName, { color: active ? accent : C.ink }]}>{sc.name}</Text>
-                    <Text style={s.scenarioBlurb}>{sc.blurb}</Text>
-                  </TouchableOpacity>
-                )
-              })}
-            </ScrollView>
-          </View>
-
-          {/* ── Disclaimer ───────────────────────────────────────────── */}
-          <Text style={s.disclaimer}>
-            PG-1 is an aid, not a guarantee. If you believe you are being recorded, preserve the scene and contact the police.
-          </Text>
-        </View>
-      </ScrollView>
-    </View>
+                {SCENARIOS.map((sc) => {
+                  const active = sc.id === prefs.scenario
+                  return (
+                    <Pressable3D
+                      key={sc.id}
+                      onPress={() => { tap(); actions.setScenario(sc.id) }}
+                    >
+                      <Glass
+                        variant={active ? 'raised' : 'card'}
+                        radius={RADIUS.lg}
+                        edge={active ? tone.accent : undefined}
+                        style={s.railCard}
+                      >
+                        <View style={s.railHead}>
+                          <GradientOrb
+                            size={30}
+                            radius={11}
+                            soft={!active}
+                            colors={active ? tone.grad : [C.ink4, C.ink5]}
+                          >
+                            <Icon
+                              name={active ? 'check' : 'scan'}
+                              size={14}
+                              color={active ? '#FFFFFF' : C.ink3}
+                              strokeWidth={2.2}
+                            />
+                          </GradientOrb>
+                          {active && <SpectrumRule width={18} height={2.5} colors={tone.grad} />}
+                        </View>
+                        <Text
+                          style={[s.railName, { color: active ? tone.accent : C.ink }]}
+                          numberOfLines={1}
+                        >
+                          {sc.name}
+                        </Text>
+                      </Glass>
+                    </Pressable3D>
+                  )
+                })}
+              </ScrollView>
+            </ScrollReveal>
+          </Stagger>
+        </AScroll>
+      </View>
+    </Tone>
   )
 }
 
-/* ── Sub-components ──────────────────────────────────────────────────────── */
+/* ── Evidence item ───────────────────────────────────────────────────────── */
 
-function EvidenceItem({ reason, accent, last }: { reason: Reason; accent: string; last: boolean }) {
+function EvidenceItem({
+  reason, last, index, accent, grad,
+}: {
+  reason: Reason; last: boolean; index: number; accent: string; grad: [string, string]
+}) {
   return (
-    <View style={{ flexDirection: 'row', gap: 12 }}>
-      <View style={{ alignItems: 'center' }}>
-        <View style={[s.evidenceIcon, { backgroundColor: hexAlpha(accent, 0.10), borderColor: hexAlpha(accent, 0.30) }]}>
-          <Text style={{ fontSize: 12 }}>{CHANNEL_EMOJI[reason.channel]}</Text>
-        </View>
-        {!last && <View style={{ width: 1, flex: 1, backgroundColor: C.line, marginTop: 4 }} />}
+    <Reveal kind="left" index={index} delay={220 + index * 90} distance={18}>
+      <View style={s.evidenceItem}>
+        {!last && <View style={s.evidenceLine} />}
+        <GradientOrb size={34} radius={12} colors={grad}>
+          <Icon name={CHANNEL_ICON[reason.channel]} size={16} color="#FFFFFF" strokeWidth={2} />
+        </GradientOrb>
+        <Text style={s.evidenceTitle} numberOfLines={1}>{reason.title}</Text>
       </View>
-      <View style={{ flex: 1, paddingTop: 2, paddingBottom: last ? 0 : 8 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <Text style={s.evidenceTitle} numberOfLines={1}>{reason.title}</Text>
-          <Text style={s.evidenceCode}>{reason.code}</Text>
-        </View>
-        <Text style={s.evidenceDetail}>{reason.detail}</Text>
-      </View>
-    </View>
+    </Reveal>
   )
 }
 
-function SensorCell({ label, value, unit }: { label: string; value: string; unit: string }) {
+/* ── Sensor cell ─────────────────────────────────────────────────────────── */
+
+function SensorCell({
+  label, value, unit, trail,
+}: {
+  label: string; value: string; unit: string; trail: number[]
+}) {
   return (
     <View style={s.sensorCell}>
       <Label>{label}</Label>
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3, marginTop: 6 }}>
-        <Text style={s.sensorValue}>{value}</Text>
+      <View style={s.sensorValue}>
+        <Text style={s.sensorNum}>{value}</Text>
         <Text style={s.sensorUnit}>{unit}</Text>
+      </View>
+      <View style={{ marginTop: 10 }}>
+        <Sparkline data={trail} width={78} height={22} strokeWidth={1.8} fill />
       </View>
     </View>
   )
 }
 
-const CHANNEL_EMOJI: Record<FusionChannel, string> = {
-  camera: '📷', tracker: '🏷', rf: '📻', emf: '⚡', dark: '🌙',
-}
-
 const s = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  hero: {
-    alignItems: 'center',
-    paddingBottom: 24,
-  },
-  heroText: {
-    alignItems: 'center',
-    marginTop: 16,
-    paddingHorizontal: 32,
-    gap: 14,
-    width: '100%',
-  },
-  scoreNumber: {
-    fontSize: 64,
-    fontWeight: '700',
-    color: C.ink,
-    letterSpacing: -3,
-    lineHeight: 72,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: -0.3,
-  },
-  confLabel: {
-    fontSize: 10.5,
-    color: C.ink4,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginTop: 2,
-  },
-  verdictVerb: {
-    fontSize: 14,
-    color: C.ink2,
-    textAlign: 'center',
-    lineHeight: 21,
-  },
-  scanBtn: {
-    alignSelf: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 13,
-    borderWidth: 1,
-  },
-  scanBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.1,
-  },
-  body: {
-    paddingHorizontal: 16,
-    gap: 0,
-  },
-  section: {
-    marginBottom: 0,
-  },
-  emptyText: {
-    fontSize: 13,
-    color: C.ink3,
-    lineHeight: 20,
-    padding: 16,
-  },
-  channelRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
-  },
-  channelName: {
-    flex: 1,
-    fontSize: 13,
-    color: C.ink2,
-    fontWeight: '500',
-  },
-  channelWeight: {
-    fontSize: 11,
-    color: C.ink4,
-  },
-  channelVal: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Courier',
-    width: 30,
-    textAlign: 'right',
-  },
-  channelTrack: {
-    height: 3,
-    backgroundColor: C.surface3,
-    borderRadius: 100,
-    marginTop: 5,
-    overflow: 'hidden',
-  },
-  channelFill: {
-    height: 3,
-    borderRadius: 100,
-    minWidth: 3,
-  },
-  sensorGrid: {
-    flexDirection: 'row',
-    paddingVertical: 4,
-  },
-  sensorDivider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: C.line,
-    marginVertical: 4,
-  },
-  sensorCell: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 12,
-    gap: 0,
-  },
-  sensorValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: C.ink,
-    fontFamily: 'Courier',
-  },
-  sensorUnit: {
-    fontSize: 10,
-    color: C.ink4,
-  },
-  devicesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-  },
-  devIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: C.bg2,
-    borderWidth: 1,
-    borderColor: C.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  devTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: C.ink,
-  },
-  devSub: {
-    fontSize: 12,
-    color: C.ink3,
-    marginTop: 2,
-  },
-  scenarioHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  root: { flex: 1 },
+
+  headerWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
     paddingHorizontal: 16,
   },
-  swipeHint: {
-    fontSize: 10,
-    color: C.ink4,
-    letterSpacing: 0.5,
-    fontWeight: '500',
-  },
-  scenarioCard: {
-    width: 200,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface,
-    padding: 14,
-    gap: 5,
-  },
-  scenarioName: {
-    fontSize: 13.5,
-    fontWeight: '600',
-    letterSpacing: -0.1,
-  },
-  scenarioBlurb: {
-    fontSize: 11.5,
-    color: C.ink3,
-    lineHeight: 17,
-  },
-  evidenceIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  evidenceTitle: {
-    fontSize: 13.5,
-    fontWeight: '500',
+  header: { paddingHorizontal: 14, paddingVertical: 11 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerMid: { flex: 1, minWidth: 0, gap: 3 },
+  headerPlace: { fontFamily: F.semibold, fontSize: 14, color: C.ink, letterSpacing: -0.25 },
+  battery: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  batteryText: { fontFamily: F.monoSemi, fontSize: 11.5, color: C.ink2 },
+
+  hero: { alignItems: 'center', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 30 },
+  score: {
+    fontFamily: F.semibold,
+    fontSize: 66,
+    lineHeight: 70,
+    letterSpacing: -3.6,
     color: C.ink,
-    flex: 1,
   },
-  evidenceCode: {
-    fontSize: 10,
-    color: C.ink4,
-    fontFamily: 'Courier',
+  verdictRow: { marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  verdictDot: { width: 7, height: 7, borderRadius: 4 },
+  verdictLabel: { fontFamily: F.semibold, fontSize: 16, letterSpacing: -0.35 },
+  confWrap: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
+
+  section: { paddingHorizontal: 16, marginTop: 14 },
+
+  evidenceList: { paddingHorizontal: 18, paddingBottom: 8 },
+  evidenceItem: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingBottom: 14 },
+  evidenceLine: {
+    position: 'absolute',
+    left: 17,
+    top: 34,
+    bottom: 0,
+    width: 1.5,
+    borderRadius: 1,
+    backgroundColor: C.line2,
   },
-  evidenceDetail: {
-    fontSize: 12.5,
+  evidenceTitle: { flex: 1, fontFamily: F.semibold, fontSize: 14, color: C.ink, letterSpacing: -0.2 },
+  evidenceEmpty: {
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    fontFamily: F.regular,
+    fontSize: 13,
     color: C.ink3,
-    lineHeight: 18,
-    marginTop: 3,
   },
-  disclaimer: {
-    fontSize: 11.5,
-    color: C.ink4,
-    textAlign: 'center',
-    lineHeight: 17,
-    paddingHorizontal: 24,
-    marginTop: 24,
-    marginBottom: 8,
-  },
+
+  sigma: { fontFamily: F.monoSemi, fontSize: 15 },
+  sigmaMax: { fontFamily: F.mono, fontSize: 11, color: C.ink3 },
+
+  sensors: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.line },
+  sensorCell: { flex: 1, paddingHorizontal: 14, paddingVertical: 14 },
+  sensorDivider: { width: StyleSheet.hairlineWidth, backgroundColor: C.line },
+  sensorValue: { flexDirection: 'row', alignItems: 'baseline', gap: 3, marginTop: 8 },
+  sensorNum: { fontFamily: F.monoSemi, fontSize: 19, lineHeight: 23, color: C.ink, letterSpacing: -0.5 },
+  sensorUnit: { fontFamily: F.mono, fontSize: 10, color: C.ink3 },
+
+  deviceRight: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  sensorLink: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+
+  rail: { paddingHorizontal: 16, gap: 12, paddingVertical: 4 },
+  railCard: { width: 206, padding: 16, gap: 14 },
+  railHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  railName: { fontFamily: F.semibold, fontSize: 14, letterSpacing: -0.25 },
 })

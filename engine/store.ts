@@ -187,6 +187,23 @@ function tick() {
   })
 }
 
+/* ── Selectors + useSelect ──────────────────────────────────────────────── */
+
+export function useSelect<T>(sel: (s: State) => T): T {
+  return useStore(sel)
+}
+
+export const selVerdict  = (s: State) => s.verdict
+export const selDevices  = (s: State) => s.devices
+export const selFrames   = (s: State) => s.frames
+export const selPrefs    = (s: State) => s.prefs
+export const selHw       = (s: State) => s.hw
+export const selPlace    = (s: State) => s.place
+export const selKlass    = (s: State) => s.verdict.klass
+export const selScanning = (s: State) => s.prefs.scanning
+export const selIncidents = (s: State) => s.incidents
+export const selSessions  = (s: State) => s.sessions
+
 export function startTelemetry() {
   if (timer !== null) return () => stopTelemetry()
   timer = setInterval(tick, 1000)
