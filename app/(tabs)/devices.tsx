@@ -6,10 +6,12 @@ import { useRouter } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 import { Empty, Label, Panel, Pill, Segmented, Tone } from '@/components/ui'
 import { Surface, Orb, Rule } from '@/components/Surface'
+import { ContextMenu } from '@/components/ContextMenu'
+import { LargeTitle, LargeTitleBar, NAV_BAR_HEIGHT } from '@/components/LargeTitle'
 import { Parallax, Pressable3D, Reveal, ScrollReveal, Stagger } from '@/components/motion'
 import { Icon, type IconName } from '@/components/Icon'
 import { ProximityField, SignalBars, Sparkline } from '@/components/viz'
-import { selDevices, useSelect } from '@/engine/store'
+import { actions, selDevices, useSelect } from '@/engine/store'
 import type { Device } from '@/engine/types'
 import { KIND_ICON, deviceTone } from '@/lib/device'
 import { ago, rssiBars, splitMac, throughput } from '@/lib/format'
@@ -70,42 +72,44 @@ export default function DevicesScreen() {
   return (
     <Tone value="neutral">
       <View style={s.root}>
+        <LargeTitleBar title={`${devices.length} radios`} scrollY={scrollY} />
+
         <AScroll
           onScroll={onScroll}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
           stickyHeaderIndices={[1]}
           contentContainerStyle={{
-            paddingTop: insets.top + 14,
+            paddingTop: insets.top + NAV_BAR_HEIGHT + 8,
             paddingBottom: insets.bottom + 130,
           }}
         >
-          {/* ── Title ─────────────────────────────────────────────── */}
-          <Parallax scrollY={scrollY} speed={0.2} fade={190} style={s.titleWrap}>
-            <Reveal kind="up" duration={700}>
+          {/* ── Large title ───────────────────────────────────────── */}
+          <LargeTitle
+            scrollY={scrollY}
+            subtitle={
               <View style={s.titleRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.h1}>{devices.length} radios</Text>
-                  <View style={s.titleMeta}>
-                    <Rule width={18} height={3} color={TONES[headTone].accent} />
-                    <Text style={[s.sub, { color: TONES[headTone].accent }]}>
-                      {counts.threat > 0
-                        ? `${counts.threat} threat`
-                        : counts.caution > 0
-                          ? `${counts.caution} watch`
-                          : 'All clear'}
-                    </Text>
-                  </View>
+                <View style={s.titleMeta}>
+                  <Rule width={18} height={3} color={TONES[headTone].accent} />
+                  <Text style={[s.sub, { color: TONES[headTone].accent }]}>
+                    {counts.threat > 0
+                      ? `${counts.threat} threat`
+                      : counts.caution > 0
+                        ? `${counts.caution} watch`
+                        : 'All clear'}
+                  </Text>
                 </View>
                 <Segmented
                   value={view}
-                  onChange={(v) => { tap(); setView(v) }}
+                  onChange={(v) => { Haptics.selectionAsync().catch(() => {}); setView(v) }}
                   options={[{ value: 'list', label: 'List' }, { value: 'field', label: 'Field' }]}
                   style={{ width: 124 }}
                 />
               </View>
-            </Reveal>
-          </Parallax>
+            }
+          >
+            {`${devices.length} radios`}
+          </LargeTitle>
 
           {/* ── Sticky search + filters ───────────────────────────── */}
           <View style={s.stickyWrap}>
@@ -270,11 +274,27 @@ function DeviceCard({ device: d }: { device: Device }) {
 
   return (
     <Tone value={tone === 'muted' ? 'neutral' : tone}>
-      <Pressable3D
+      <ContextMenu
         onPress={() => {
           tap()
           router.push({ pathname: '/device/[id]', params: { id: d.id } })
         }}
+        actions={[
+          {
+            label: 'Open details',
+            icon: 'arrow-up-right',
+            onPress: () => router.push({ pathname: '/device/[id]', params: { id: d.id } }),
+          },
+          d.trust === 'trusted'
+            ? { label: 'Remove from trusted', icon: 'minus', onPress: () => actions.setTrust(d.id, 'unknown') }
+            : { label: 'Mark as trusted', icon: 'check', onPress: () => actions.setTrust(d.id, 'trusted') },
+          {
+            label: d.trust === 'flagged' ? 'Unflag' : 'Flag as threat',
+            icon: 'flag',
+            destructive: d.trust !== 'flagged',
+            onPress: () => actions.setTrust(d.id, d.trust === 'flagged' ? 'unknown' : 'flagged'),
+          },
+        ]}
       >
         <Surface
           variant={notable ? 'raised' : 'card'}
@@ -329,7 +349,7 @@ function DeviceCard({ device: d }: { device: Device }) {
             </View>
           )}
         </Surface>
-      </Pressable3D>
+      </ContextMenu>
     </Tone>
   )
 }

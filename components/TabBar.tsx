@@ -1,9 +1,14 @@
 /* ============================================================================
-   TAB BAR — flat paper strip
+   TAB BAR — floating chrome
    ----------------------------------------------------------------------------
-   A solid white bar with a hairline top edge. The active tab is marked by a
-   flat Klein-blue block behind the icon and a solid rule above it — no blur,
-   no wash, no gradient. The block springs between slots on the UI thread.
+   A detached bar in Apple's regular material: content blurs beneath it as you
+   scroll, which is the cue that this floats above the page rather than
+   belonging to it. The colour on top stays flat — a Klein-blue block behind
+   the active icon and a solid rule above it — so the material reads as depth,
+   not as a wash of colour.
+
+   The block springs between slots on the UI thread, and switching fires the
+   selection haptic iOS uses for segmented pickers rather than an impact.
    ========================================================================== */
 
 import { useEffect, useRef, useState } from 'react'
@@ -18,6 +23,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated'
 import * as Haptics from 'expo-haptics'
+import { Material } from './Material'
 import { Icon, type IconName } from './Icon'
 import { SPRING } from './motion'
 import { C, RADIUS, SHADOW, alpha } from '@/lib/colors'
@@ -65,7 +71,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }]}
       pointerEvents="box-none"
     >
-      <View style={styles.bar}>
+      <Material kind="regular" radius={RADIUS.lg} style={styles.bar}>
         <View style={styles.inner} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
           {cell > 0 ? (
             <Animated.View style={[styles.block, { width: cell - 8 }, block]}>
@@ -85,14 +91,14 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                   canPreventDefault: true,
                 })
                 if (state.index !== i && !evt.defaultPrevented) {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {})
+                  Haptics.selectionAsync().catch(() => {})
                   navigation.navigate(route.name)
                 }
               }}
             />
           ))}
         </View>
-      </View>
+      </Material>
     </View>
   )
 }
@@ -146,7 +152,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   bar: {
-    backgroundColor: C.surface,
     borderRadius: RADIUS.lg,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: C.line2,

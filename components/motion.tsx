@@ -55,10 +55,26 @@ export const EASE = {
   inOut: Easing.bezier(0.65, 0, 0.35, 1),
 } as const
 
+/* ── Springs ─────────────────────────────────────────────────────────────────
+   Matched to UIKit's spring vocabulary. Apple's system animations are close to
+   critically damped — the bounce people associate with iOS comes from the
+   *duration* and the interruptibility, not from overshoot. Only `playful`
+   overshoots, and it is reserved for the tab bar.
+
+   Expressed as duration/dampingRatio (Reanimated 3+ accepts either that or
+   damping/stiffness; the former is how Apple's own API is parameterised). */
 export const SPRING = {
-  soft:  { damping: 18, stiffness: 160, mass: 0.9 },
-  snappy:{ damping: 22, stiffness: 320, mass: 0.7 },
-  bouncy:{ damping: 11, stiffness: 190, mass: 0.8 },
+  /** UIKit default — settles without visible overshoot. */
+  standard: { duration: 500, dampingRatio: 1 },
+  /** Quick response for taps and toggles. */
+  snappy:   { duration: 350, dampingRatio: 0.9 },
+  /** Sheet presentation / dismissal. */
+  sheet:    { duration: 520, dampingRatio: 0.86 },
+  /** The one place a little overshoot is wanted. */
+  playful:  { duration: 600, dampingRatio: 0.68 },
+  /** Legacy aliases so existing call sites keep their feel. */
+  soft:     { duration: 500, dampingRatio: 1 },
+  bouncy:   { duration: 600, dampingRatio: 0.68 },
 } as const
 
 /* ── Stagger context ─────────────────────────────────────────────────────── */
