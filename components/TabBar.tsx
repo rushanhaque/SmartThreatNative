@@ -1,10 +1,9 @@
 /* ============================================================================
-   TAB BAR — floating liquid glass
+   TAB BAR — flat paper strip
    ----------------------------------------------------------------------------
-   A detached glass capsule rather than an edge-to-edge bar. The active pill
-   springs between slots on the UI thread; the icon lifts, the label fades up,
-   and a spectral underglow tracks the pill so the brand gradient reads even
-   at 10px.
+   A solid white bar with a hairline top edge. The active tab is marked by a
+   flat Klein-blue block behind the icon and a solid rule above it — no blur,
+   no wash, no gradient. The block springs between slots on the UI thread.
    ========================================================================== */
 
 import { useEffect, useRef, useState } from 'react'
@@ -17,14 +16,11 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated'
-import { LinearGradient } from 'expo-linear-gradient'
 import * as Haptics from 'expo-haptics'
-import { Glass } from './Glass'
 import { Icon, type IconName } from './Icon'
 import { SPRING } from './motion'
-import { C, RADIUS, alpha } from '@/lib/colors'
+import { C, RADIUS, SHADOW, alpha } from '@/lib/colors'
 import { F } from '@/lib/type'
 
 const ICONS: Record<string, IconName> = {
@@ -45,9 +41,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets()
   const [w, setW] = useState(0)
   const routes = state.routes
-  const count = routes.length
   const pad = 6
-  const cell = w > 0 ? (w - pad * 2) / count : 0
+  const cell = w > 0 ? (w - pad * 2) / routes.length : 0
 
   const x = useSharedValue(0)
   const placed = useRef(false)
@@ -56,8 +51,6 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
     if (cell <= 0) return
     const target = state.index * cell
     if (!placed.current) {
-      // First measurement: snap, so a deep link lands with the pill already
-      // under the right tab instead of sliding in from slot zero.
       placed.current = true
       x.value = target
     } else {
@@ -65,43 +58,18 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
     }
   }, [state.index, cell, x])
 
-  const pill = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value }],
-  }))
+  const block = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }))
 
   return (
     <View
+      style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }]}
       pointerEvents="box-none"
-      style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}
     >
-      <Glass variant="raised" radius={RADIUS.xl} style={styles.bar}>
+      <View style={styles.bar}>
         <View style={styles.inner} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-          {/* travelling pill */}
           {cell > 0 ? (
-            <Animated.View style={[styles.pill, { width: cell - 8 }, pill]}>
-              <LinearGradient
-                colors={[alpha(C.irisA, 0.16), alpha(C.irisB, 0.13), alpha(C.irisC, 0.15)]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[StyleSheet.absoluteFill, { borderRadius: RADIUS.md }]}
-              />
-              <View
-                style={[
-                  StyleSheet.absoluteFill,
-                  {
-                    borderRadius: RADIUS.md,
-                    borderWidth: StyleSheet.hairlineWidth * 1.5,
-                    borderColor: alpha(C.irisA, 0.22),
-                  },
-                ]}
-              />
-              {/* spectral underglow */}
-              <LinearGradient
-                colors={[C.irisA, C.irisB, C.irisC]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={styles.pillGlow}
-              />
+            <Animated.View style={[styles.block, { width: cell - 8 }, block]}>
+              <View style={styles.blockRule} />
             </Animated.View>
           ) : null}
 
@@ -124,7 +92,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             />
           ))}
         </View>
-      </Glass>
+      </View>
     </View>
   )
 }
@@ -145,19 +113,12 @@ function TabItem({
   }, [focused, p])
 
   const iconStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: interpolate(p.value, [0, 1], [0, -2]) },
-      { scale: interpolate(p.value, [0, 1], [1, 1.12]) },
-    ],
+    transform: [{ translateY: interpolate(p.value, [0, 1], [0, -2]) }],
   }))
 
   const labelStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(p.value, [0, 1], [0.6, 1]),
-    transform: [{ translateY: interpolate(p.value, [0, 1], [1, 0]) }],
-    color: interpolateColor(p.value, [0, 1], [C.ink3, C.ink]),
+    color: interpolateColor(p.value, [0, 1], [C.ink3, C.klein]),
   }))
-
-  const color = focused ? C.irisA : C.ink3
 
   return (
     <Pressable onPress={onPress} style={styles.item} hitSlop={4}>
@@ -165,8 +126,8 @@ function TabItem({
         <Icon
           name={ICONS[routeName] ?? 'shield'}
           size={21}
-          color={color}
-          strokeWidth={focused ? 2.1 : 1.7}
+          color={focused ? C.klein : C.ink3}
+          strokeWidth={focused ? 2.2 : 1.7}
         />
       </Animated.View>
       <Animated.Text style={[styles.label, labelStyle]}>
@@ -182,38 +143,44 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   bar: {
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.lg,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderColor: C.line2,
     overflow: 'hidden',
+    ...SHADOW.lift,
   },
   inner: {
     flexDirection: 'row',
     padding: 6,
-    height: 66,
+    height: 64,
     alignItems: 'center',
   },
-  pill: {
+  block: {
     position: 'absolute',
     left: 6 + 4,
     top: 6,
     bottom: 6,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.sm,
+    backgroundColor: alpha(C.klein, 0.09),
     overflow: 'hidden',
   },
-  pillGlow: {
+  blockRule: {
     position: 'absolute',
-    bottom: 0,
-    left: '22%',
-    right: '22%',
-    height: 2.5,
-    borderRadius: 2,
+    top: 0,
+    left: '26%',
+    right: '26%',
+    height: 3,
+    backgroundColor: C.klein,
   },
   item: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 5,
   },
   label: {
     fontFamily: F.semibold,

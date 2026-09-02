@@ -3,7 +3,7 @@ import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import { Bar, Button, Divider, Label, Panel, PanelHeader, Pill, Segmented, Switch, Tone } from '@/components/ui'
-import { Glass, GradientOrb, SpectrumRule } from '@/components/Glass'
+import { Surface, Orb, Rule } from '@/components/Surface'
 import { Parallax, Pressable3D, Reveal, ScrollReveal, Stagger } from '@/components/motion'
 import { Icon, type IconName } from '@/components/Icon'
 import { actions, selHw, selPrefs, useSelect } from '@/engine/store'
@@ -17,12 +17,12 @@ const AScroll = Animated.createAnimatedComponent(ScrollView)
 const tap = () => Haptics.selectionAsync().catch(() => {})
 
 const ALERT_ROWS: Array<{
-  id: AlertChannel; title: string; icon: IconName; grad: [string, string]
+  id: AlertChannel; title: string; icon: IconName; accent: string
 }> = [
-  { id: 'oled',   title: 'Lens display',      icon: 'glasses', grad: [C.violet, C.indigo] },
-  { id: 'haptic', title: 'Temple haptics',    icon: 'waves',   grad: [C.indigo, C.cyan]   },
-  { id: 'buzzer', title: 'Buzzer',            icon: 'bell',    grad: [C.cyan,   C.mint]   },
-  { id: 'push',   title: 'Phone notification', icon: 'bolt',   grad: [C.pink,   C.violet] },
+  { id: 'oled',   title: 'Lens display',      icon: 'glasses', accent: C.klein },
+  { id: 'haptic', title: 'Temple haptics',    icon: 'waves',   accent: C.klein   },
+  { id: 'buzzer', title: 'Buzzer',            icon: 'bell',    accent: C.safe   },
+  { id: 'push',   title: 'Phone notification', icon: 'bolt',   accent: C.threat },
 ]
 
 export default function SettingsScreen() {
@@ -49,7 +49,7 @@ export default function SettingsScreen() {
           <Parallax scrollY={scrollY} speed={0.22} fade={200} style={s.titleWrap}>
             <Reveal kind="up" duration={700}>
               <Text style={s.h1}>Settings</Text>
-              <SpectrumRule width={28} height={3} style={{ marginTop: 10 }} />
+              <Rule width={28} height={3} style={{ marginTop: 10 }} />
             </Reveal>
           </Parallax>
 
@@ -98,10 +98,10 @@ export default function SettingsScreen() {
                 <View style={s.rows}>
                   {ALERT_ROWS.map((r, i) => (
                     <View key={r.id} style={[s.row, i < ALERT_ROWS.length - 1 && s.rowBorder]}>
-                      <GradientOrb
+                      <Orb
                         size={34}
                         radius={12}
-                        colors={r.grad}
+                        color={r.accent}
                         soft={!prefs.channels[r.id]}
                       >
                         <Icon
@@ -110,7 +110,7 @@ export default function SettingsScreen() {
                           color={prefs.channels[r.id] ? '#FFFFFF' : C.ink3}
                           strokeWidth={2}
                         />
-                      </GradientOrb>
+                      </Orb>
                       <Text style={s.rowTitle}>{r.title}</Text>
                       <Switch
                         checked={prefs.channels[r.id]}
@@ -173,13 +173,13 @@ export default function SettingsScreen() {
                         onPress={() => { tap(); actions.setScenario(sc.id) }}
                       >
                         <View style={[s.row, i < SCENARIOS.length - 1 && s.rowBorder]}>
-                          <View style={[s.radio, on && { borderColor: C.indigo }]}>
+                          <View style={[s.radio, on && { borderColor: C.klein }]}>
                             {on && <View style={s.radioDot} />}
                           </View>
-                          <Text style={[s.rowTitle, s.rowTitleWide, on && { color: C.indigo }]}>
+                          <Text style={[s.rowTitle, s.rowTitleWide, on && { color: C.klein }]}>
                             {sc.name}
                           </Text>
-                          {on && <SpectrumRule width={16} height={2.5} />}
+                          {on && <Rule width={16} height={2.5} />}
                         </View>
                       </Pressable3D>
                     )
@@ -273,5 +273,5 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: C.indigo },
+  radioDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: C.klein },
 })

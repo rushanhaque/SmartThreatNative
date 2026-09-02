@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 import { Empty, Label, Panel, Pill, Segmented, Tone } from '@/components/ui'
-import { Glass, GradientOrb, SpectrumRule } from '@/components/Glass'
+import { Surface, Orb, Rule } from '@/components/Surface'
 import { Parallax, Pressable3D, Reveal, ScrollReveal, Stagger } from '@/components/motion'
 import { Icon, type IconName } from '@/components/Icon'
 import { ProximityField, SignalBars, Sparkline } from '@/components/viz'
@@ -87,7 +87,7 @@ export default function DevicesScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={s.h1}>{devices.length} radios</Text>
                   <View style={s.titleMeta}>
-                    <SpectrumRule width={18} height={2.5} colors={TONES[headTone].grad} />
+                    <Rule width={18} height={3} color={TONES[headTone].accent} />
                     <Text style={[s.sub, { color: TONES[headTone].accent }]}>
                       {counts.threat > 0
                         ? `${counts.threat} threat`
@@ -110,7 +110,7 @@ export default function DevicesScreen() {
           {/* ── Sticky search + filters ───────────────────────────── */}
           <View style={s.stickyWrap}>
             <Reveal kind="up" delay={110} duration={700}>
-              <Glass variant="card" radius={RADIUS.lg} style={s.searchGlass}>
+              <Surface variant="card" radius={RADIUS.lg} style={s.searchGlass}>
                 <View style={s.searchRow}>
                   <Icon name="search" size={17} color={C.ink4} strokeWidth={1.9} />
                   <TextInput
@@ -157,7 +157,7 @@ export default function DevicesScreen() {
                     )
                   })}
                 </ScrollView>
-              </Glass>
+              </Surface>
             </Reveal>
           </View>
 
@@ -239,25 +239,25 @@ function DeviceCard({ device: d }: { device: Device }) {
           router.push({ pathname: '/device/[id]', params: { id: d.id } })
         }}
       >
-        <Glass
+        <Surface
           variant={notable ? 'raised' : 'card'}
           radius={RADIUS.lg}
           edge={notable ? tk.accent : undefined}
         >
           <View style={s.cardTop}>
-            <GradientOrb
+            <Orb
               size={44}
               radius={15}
               soft={!notable}
-              colors={notable ? tk.grad : [C.ink4, C.ink5]}
+              color={notable ? tk.accent : C.ink4}
             >
               <Icon
                 name={KIND_ICON[d.kind]}
                 size={19}
-                color={notable ? '#FFFFFF' : C.ink3}
+                color={notable ? tk.on : C.ink3}
                 strokeWidth={2}
               />
-            </GradientOrb>
+            </Orb>
 
             <View style={s.cardMeta}>
               <View style={s.cardNameRow}>
@@ -297,7 +297,7 @@ function DeviceCard({ device: d }: { device: Device }) {
               <Sparkline data={d.rssiTrail} width={54} height={18} strokeWidth={1.6} fill />
             </View>
           )}
-        </Glass>
+        </Surface>
       </Pressable3D>
     </Tone>
   )
@@ -335,7 +335,7 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   chipOn: { borderColor: 'transparent' },
-  chipFill: { backgroundColor: C.indigo, borderRadius: RADIUS.pill },
+  chipFill: { backgroundColor: C.klein, borderRadius: RADIUS.pill },
   chipText: { fontFamily: F.semibold, fontSize: 12.5, letterSpacing: -0.1 },
 
   section: { paddingHorizontal: 16, marginBottom: 14 },

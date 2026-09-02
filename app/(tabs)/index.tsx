@@ -10,7 +10,7 @@ import * as Haptics from 'expo-haptics'
 import { ApertureRing } from '@/components/ApertureRing'
 import { EvidenceStack, Sparkline } from '@/components/viz'
 import { Button, Label, LiveDot, Panel, PanelHeader, Pill, Row, SectionTitle, Tone } from '@/components/ui'
-import { Glass, GradientOrb, SpectrumRule } from '@/components/Glass'
+import { Surface, Orb, Rule } from '@/components/Surface'
 import { Counter, Float, Parallax, Pressable3D, Reveal, ScrollReveal, Stagger } from '@/components/motion'
 import { Icon, type IconName } from '@/components/Icon'
 import { Logomark } from '@/components/Brand'
@@ -66,7 +66,7 @@ export default function ShieldScreen() {
         {/* ── Floating glass header ─────────────────────────────────── */}
         <View style={[s.headerWrap, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
           <Reveal kind="down" duration={640}>
-            <Glass variant="card" radius={RADIUS.lg} style={s.header}>
+            <Surface variant="card" radius={RADIUS.lg} style={s.header}>
               <View style={s.headerRow}>
                 <Logomark size={24} active />
                 <View style={s.headerMid}>
@@ -78,7 +78,7 @@ export default function ShieldScreen() {
                   <Text style={s.batteryText}>{hw.batteryPct}%</Text>
                 </View>
               </View>
-            </Glass>
+            </Surface>
           </Reveal>
         </View>
 
@@ -102,7 +102,7 @@ export default function ShieldScreen() {
                     <Text style={[s.verdictLabel, { color: tone.accent }]}>{meta.label}</Text>
                   </View>
                   <View style={s.confWrap}>
-                    <SpectrumRule width={16} height={2} colors={tone.grad} />
+                    <Rule width={16} height={2} color={tone.accent} />
                     <Label>CONF {pct(verdict.confidence)}</Label>
                   </View>
                 </ApertureRing>
@@ -140,7 +140,6 @@ export default function ShieldScreen() {
                         last={i === top.length - 1}
                         index={i}
                         accent={tone.accent}
-                        grad={tone.grad}
                       />
                     ))}
                   </View>
@@ -196,9 +195,9 @@ export default function ShieldScreen() {
                 <Row
                   onPress={() => { tap(); router.push('/devices') }}
                   icon={
-                    <GradientOrb size={42} colors={[C.violet, C.indigo]}>
+                    <Orb size={42} color={C.klein}>
                       <Icon name="radio" size={19} color="#FFFFFF" strokeWidth={2} />
-                    </GradientOrb>
+                    </Orb>
                   }
                   title={`${devices.length} radios in range`}
                   sub={unknown ? `${unknown} unidentified` : undefined}
@@ -233,27 +232,27 @@ export default function ShieldScreen() {
                       key={sc.id}
                       onPress={() => { tap(); actions.setScenario(sc.id) }}
                     >
-                      <Glass
+                      <Surface
                         variant={active ? 'raised' : 'card'}
                         radius={RADIUS.lg}
                         edge={active ? tone.accent : undefined}
                         style={s.railCard}
                       >
                         <View style={s.railHead}>
-                          <GradientOrb
+                          <Orb
                             size={30}
                             radius={11}
                             soft={!active}
-                            colors={active ? tone.grad : [C.ink4, C.ink5]}
+                            color={active ? tone.accent : C.ink4}
                           >
                             <Icon
                               name={active ? 'check' : 'scan'}
                               size={14}
-                              color={active ? '#FFFFFF' : C.ink3}
+                              color={active ? tone.on : C.ink3}
                               strokeWidth={2.2}
                             />
-                          </GradientOrb>
-                          {active && <SpectrumRule width={18} height={2.5} colors={tone.grad} />}
+                          </Orb>
+                          {active && <Rule width={18} height={2.5} color={tone.accent} />}
                         </View>
                         <Text
                           style={[s.railName, { color: active ? tone.accent : C.ink }]}
@@ -261,7 +260,7 @@ export default function ShieldScreen() {
                         >
                           {sc.name}
                         </Text>
-                      </Glass>
+                      </Surface>
                     </Pressable3D>
                   )
                 })}
@@ -277,17 +276,17 @@ export default function ShieldScreen() {
 /* ── Evidence item ───────────────────────────────────────────────────────── */
 
 function EvidenceItem({
-  reason, last, index, accent, grad,
+  reason, last, index, accent,
 }: {
-  reason: Reason; last: boolean; index: number; accent: string; grad: [string, string]
+  reason: Reason; last: boolean; index: number; accent: string
 }) {
   return (
     <Reveal kind="left" index={index} delay={220 + index * 90} distance={18}>
       <View style={s.evidenceItem}>
         {!last && <View style={s.evidenceLine} />}
-        <GradientOrb size={34} radius={12} colors={grad}>
+        <Orb size={34} radius={12} color={accent}>
           <Icon name={CHANNEL_ICON[reason.channel]} size={16} color="#FFFFFF" strokeWidth={2} />
-        </GradientOrb>
+        </Orb>
         <Text style={s.evidenceTitle} numberOfLines={1}>{reason.title}</Text>
       </View>
     </Reveal>

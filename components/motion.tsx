@@ -11,8 +11,8 @@
      Stagger       — sequences a group of Reveals
      Pressable3D   — spring scale + subtle tilt on touch
      Counter       — odometer for numeric readouts
-     Shimmer       — travelling specular band for loading/live surfaces
      Float         — perpetual gentle drift, for hero ornaments
+     Pulse         — breathing halo for live/threat states
    ========================================================================== */
 
 import {
@@ -38,8 +38,6 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated'
-import { LinearGradient } from 'expo-linear-gradient'
-import { alpha } from '@/lib/colors'
 
 /* Expo's easing curves, matched to the web build's --ease-out-expo. */
 export const EASE = {
@@ -308,53 +306,6 @@ export function Counter({
   })
 
   return <Text style={style}>{shown}</Text>
-}
-
-/* ── Shimmer — travelling specular band ──────────────────────────────────── */
-
-export function Shimmer({
-  width,
-  height,
-  radius = 0,
-  color = '#FFFFFF',
-  duration = 2600,
-  style,
-}: {
-  width: number
-  height: number
-  radius?: number
-  color?: string
-  duration?: number
-  style?: StyleProp<ViewStyle>
-}) {
-  const t = useSharedValue(0)
-
-  useEffect(() => {
-    t.value = withRepeat(withTiming(1, { duration, easing: EASE.inOut }), -1, false)
-  }, [duration, t])
-
-  const aStyle = useAnimatedStyle(() => {
-    'worklet'
-    return {
-      transform: [{ translateX: interpolate(t.value, [0, 1], [-width, width * 1.4]) }],
-    }
-  })
-
-  return (
-    <View
-      pointerEvents="none"
-      style={[{ width, height, borderRadius: radius, overflow: 'hidden' }, style]}
-    >
-      <Animated.View style={[{ width: width * 0.55, height }, aStyle]}>
-        <LinearGradient
-          colors={['transparent', alpha(color, 0.55), 'transparent']}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
-    </View>
-  )
 }
 
 /* ── Float — perpetual drift ─────────────────────────────────────────────── */

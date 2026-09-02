@@ -7,14 +7,12 @@ import Animated, {
   withDelay,
   withTiming,
 } from 'react-native-reanimated'
-import { LinearGradient } from 'expo-linear-gradient'
 import Svg, {
   Circle,
   Line,
   Path,
   G,
   Defs,
-  LinearGradient as SvgLinearGradient,
   Stop,
   Text as SvgText,
 } from 'react-native-svg'
@@ -41,8 +39,7 @@ export const Sparkline = memo(function Sparkline({
   strokeWidth?: number
   fill?: boolean
 }) {
-  const { accent, lift } = useTone()
-  const gid = useMemo(() => `spk-${Math.random().toString(36).slice(2, 8)}`, [])
+  const { accent } = useTone()
   const d = useMemo(() => {
     if (data.length < 2) return { line: '', area: '' }
     const min = Math.min(...data)
@@ -57,22 +54,11 @@ export const Sparkline = memo(function Sparkline({
 
   return (
     <Svg width={width} height={height}>
-      <Defs>
-        <SvgLinearGradient id={gid} x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0%" stopColor={lift} stopOpacity={0.55} />
-          <Stop offset="55%" stopColor={accent} />
-          <Stop offset="100%" stopColor={lift} />
-        </SvgLinearGradient>
-        <SvgLinearGradient id={`${gid}-f`} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0%" stopColor={accent} stopOpacity={0.28} />
-          <Stop offset="100%" stopColor={accent} stopOpacity={0} />
-        </SvgLinearGradient>
-      </Defs>
-      {fill && <Path d={d.area} fill={`url(#${gid}-f)`} />}
+      {fill && <Path d={d.area} fill={accent} opacity={0.14} />}
       <Path
         d={d.line}
         fill="none"
-        stroke={`url(#${gid})`}
+        stroke={accent}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -104,8 +90,7 @@ export function Series({
   /** Hide the corner readout when the caller already shows the value. */
   showLast?: boolean
 }) {
-  const { accent, lift } = useTone()
-  const gid = useMemo(() => `ser-${Math.random().toString(36).slice(2, 8)}`, [])
+  const { accent } = useTone()
   const W = 340
   const H = height
   const [lo, hi] = domain
@@ -122,24 +107,14 @@ export function Series({
   return (
     <View>
       <Svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none">
-        <Defs>
-          <SvgLinearGradient id={`${gid}-f`} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0%" stopColor={accent} stopOpacity={0.34} />
-            <Stop offset="100%" stopColor={accent} stopOpacity={0} />
-          </SvgLinearGradient>
-          <SvgLinearGradient id={`${gid}-s`} x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0%" stopColor={lift} />
-            <Stop offset="100%" stopColor={accent} />
-          </SvgLinearGradient>
-        </Defs>
         {[0.25, 0.5, 0.75].map((f) => (
           <Line key={f} x1="0" y1={H * f} x2={W} y2={H * f} stroke={C.line} strokeWidth="1" />
         ))}
-        <Path d={area} fill={`url(#${gid}-f)`} />
+        <Path d={area} fill={accent} opacity={0.14} />
         <Path
           d={line}
           fill="none"
-          stroke={`url(#${gid}-s)`}
+          stroke={accent}
           strokeWidth="2.2"
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -196,12 +171,6 @@ export function Trace({
   return (
     <View>
       <Svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none">
-        <Defs>
-          <SvgLinearGradient id={`tr-${channel}`} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0%" stopColor={accent} stopOpacity={0.28} />
-            <Stop offset="100%" stopColor={accent} stopOpacity={0} />
-          </SvgLinearGradient>
-        </Defs>
         {[0.25, 0.5, 0.75].map((f) => (
           <Line key={f} x1="0" y1={H * f} x2={W} y2={H * f} stroke={C.line} strokeWidth="1" />
         ))}
@@ -211,7 +180,7 @@ export function Trace({
             stroke={C.caution} strokeWidth="1" strokeDasharray="3 4" opacity={0.6}
           />
         )}
-        <Path d={area} fill={`url(#tr-${channel})`} />
+        <Path d={area} fill={accent} opacity={0.14} />
         <Path d={line} fill="none" stroke={accent} strokeWidth="1.6" strokeLinejoin="round" />
       </Svg>
       <View style={s.traceLabel} pointerEvents="none">
@@ -260,7 +229,7 @@ function EvidenceRow({
 }: {
   label: string; weight: number; active: boolean; ghost: number; fill: number; index: number
 }) {
-  const { accent, grad } = useTone()
+  const { accent } = useTone()
   const p = useSharedValue(0)
 
   useEffect(() => {
@@ -282,14 +251,9 @@ function EvidenceRow({
       <View style={s.evidenceBar}>
         <View style={[s.evidenceGhost, { width: `${ghost * 100}%` }]} />
         <Animated.View
-          style={[s.evidenceFill, { opacity: active ? 1 : 0.32 }, barStyle]}
+          style={[s.evidenceFill, { backgroundColor: accent, opacity: active ? 1 : 0.3 }, barStyle]}
         >
-          <LinearGradient
-            colors={grad}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={StyleSheet.absoluteFill}
-          />
+          
         </Animated.View>
       </View>
       <Text style={[s.evidenceWeight, active && { color: accent }]}>×{weight.toFixed(2)}</Text>
@@ -417,7 +381,7 @@ export function Spectrum({ levels, peakBand }: { levels: number[]; peakBand?: nu
 }
 
 function SpectrumBar({ value, hot, index }: { value: number; hot: boolean; index: number }) {
-  const { grad } = useTone()
+  const { accent } = useTone()
   const p = useSharedValue(0)
 
   useEffect(() => {
@@ -437,13 +401,8 @@ function SpectrumBar({ value, hot, index }: { value: number; hot: boolean; index
       {[0.25, 0.5, 0.75].map((g) => (
         <View key={g} style={[s.spectrumGrid, { bottom: `${g * 100}%` as never }]} />
       ))}
-      <Animated.View style={[s.spectrumFill, { opacity: hot ? 1 : 0.42 }, fill]}>
-        <LinearGradient
-          colors={hot ? grad : [C.ink4, C.ink5]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
+      <Animated.View style={[s.spectrumFill, { backgroundColor: hot ? accent : C.ink4, opacity: hot ? 1 : 0.4 }, fill]}>
+        
       </Animated.View>
     </View>
   )
@@ -535,7 +494,7 @@ const s = StyleSheet.create({
   evidenceName: { fontFamily: F.medium, fontSize: 12.5, lineHeight: 16 },
   evidenceBar: { flex: 1, height: 18, borderRadius: 3, backgroundColor: C.bg2, overflow: 'hidden', position: 'relative' },
   evidenceGhost: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 3, borderWidth: 1, borderColor: C.line },
-  evidenceFill: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 3 },
+  evidenceFill: { position: 'absolute', top: 0, bottom: 0, left: 0 },
   evidenceWeight: { fontFamily: F.mono, width: 52, fontSize: 11, lineHeight: 14, color: C.ink3, textAlign: 'right' },
 
   signalBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
@@ -547,7 +506,7 @@ const s = StyleSheet.create({
      their content and a flex:1 track would collapse to zero. */
   spectrumTrack: { height: 92, width: '100%', borderRadius: 6, backgroundColor: alpha(C.ink, 0.06), overflow: 'hidden', justifyContent: 'flex-end', position: 'relative' },
   spectrumGrid: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: C.line },
-  spectrumFill: { width: '100%', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+  spectrumFill: { width: '100%' },
   spectrumLabel: { fontFamily: F.mono, fontSize: 8.5, letterSpacing: 0.85 },
 
   gaugeWrap: { alignItems: 'center' },

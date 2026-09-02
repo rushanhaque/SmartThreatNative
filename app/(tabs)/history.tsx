@@ -4,7 +4,7 @@ import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import { Empty, Label, Panel, PanelHeader, Pill, Segmented, Tone } from '@/components/ui'
-import { Glass, GradientOrb, SpectrumRule } from '@/components/Glass'
+import { Surface, Orb, Rule } from '@/components/Surface'
 import { Parallax, Pressable3D, Reveal, ScrollReveal, Stagger } from '@/components/motion'
 import { Icon } from '@/components/Icon'
 import { ThreatRibbon } from '@/components/viz'
@@ -68,7 +68,7 @@ export default function HistoryScreen() {
             <Reveal kind="up" duration={700}>
               <Text style={s.h1}>History</Text>
               <View style={s.titleMeta}>
-                <SpectrumRule width={20} height={2.5} />
+                <Rule width={20} height={2.5} />
                 <Text style={s.sub}>
                   {sessions.length} scans · {incidents.length} incidents
                 </Text>
@@ -109,7 +109,7 @@ export default function HistoryScreen() {
                   {grouped.map(([day, items]) => (
                     <View key={day}>
                       <View style={s.groupLabel}>
-                        <SpectrumRule width={12} height={2} />
+                        <Rule width={12} height={2} />
                         <Label>{day.toUpperCase()}</Label>
                       </View>
                       <View style={s.groupCards}>
@@ -125,7 +125,7 @@ export default function HistoryScreen() {
                             >
                               <Tone value={sess.klass}>
                                 <Pressable3D onPress={tap}>
-                                  <Glass variant="card" radius={RADIUS.lg} edge={tk.accent}>
+                                  <Surface variant="card" radius={RADIUS.lg} edge={tk.accent}>
                                     <View style={s.sessionInner}>
                                       <View style={s.sessionHead}>
                                         <View style={{ flex: 1, minWidth: 0 }}>
@@ -140,7 +140,7 @@ export default function HistoryScreen() {
                                           <Text style={[s.sessionScore, { color: tk.accent }]}>
                                             {sess.peakScore}
                                           </Text>
-                                          <SpectrumRule width={22} height={2.5} colors={tk.grad} />
+                                          <Rule width={22} height={2.5} color={tk.accent} />
                                         </View>
                                       </View>
                                       <View style={s.sessionPills}>
@@ -149,7 +149,7 @@ export default function HistoryScreen() {
                                         </Pill>
                                       </View>
                                     </View>
-                                  </Glass>
+                                  </Surface>
                                 </Pressable3D>
                               </Tone>
                             </ScrollReveal>
@@ -174,16 +174,16 @@ export default function HistoryScreen() {
                     >
                       <Tone value={inc.klass}>
                         <Pressable3D onPress={tap}>
-                          <Glass variant="card" radius={RADIUS.lg} edge={tk.accent}>
+                          <Surface variant="card" radius={RADIUS.lg} edge={tk.accent}>
                             <View style={s.incidentInner}>
-                              <GradientOrb size={44} radius={15} colors={tk.grad}>
+                              <Orb size={44} radius={15} color={tk.accent}>
                                 <Icon
                                   name={inc.klass === 'threat' ? 'alert' : 'info'}
                                   size={19}
                                   color="#FFFFFF"
                                   strokeWidth={2}
                                 />
-                              </GradientOrb>
+                              </Orb>
                               <View style={s.incidentMeta}>
                                 <Text style={s.incidentPlace} numberOfLines={1}>{inc.place}</Text>
                                 <Text style={s.incidentTime}>
@@ -194,7 +194,7 @@ export default function HistoryScreen() {
                                 {inc.peakScore}
                               </Text>
                             </View>
-                          </Glass>
+                          </Surface>
                         </Pressable3D>
                       </Tone>
                     </ScrollReveal>
@@ -212,9 +212,9 @@ export default function HistoryScreen() {
             >
               <Panel>
                 <View style={s.privacyRow}>
-                  <GradientOrb size={38} radius={13} colors={[C.violet, C.indigo]} soft>
-                    <Icon name="lock" size={17} color={C.indigo} strokeWidth={2} />
-                  </GradientOrb>
+                  <Orb size={38} radius={13} color={C.klein} soft>
+                    <Icon name="lock" size={17} color={C.klein} strokeWidth={2} />
+                  </Orb>
                   <Text style={s.privacyTitle}>Nothing here has left your phone</Text>
                 </View>
               </Panel>

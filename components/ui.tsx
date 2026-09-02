@@ -1,10 +1,9 @@
 /* ============================================================================
-   UI PRIMITIVES — liquid glass edition
+   UI PRIMITIVES — flat spot ink
    ----------------------------------------------------------------------------
-   Tone still travels by React context (RN has no CSS cascade), but every
-   surface is now glass and every state change is a spring rather than a
-   step. Interaction feedback is handled by Pressable3D so the whole app
-   shares one touch feel.
+   Every fill here is one solid colour. Tone still travels by context, but a
+   tone now resolves to a single ink rather than a blend, so state reads as a
+   deliberate colour choice instead of decoration.
    ========================================================================== */
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
@@ -25,11 +24,10 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated'
-import { LinearGradient } from 'expo-linear-gradient'
 import { C, RADIUS, TONES, alpha, type Tone as ToneName, type ToneTokens } from '@/lib/colors'
 import { F, T } from '@/lib/type'
 import { Icon, type IconName } from './Icon'
-import { Glass, GradientOrb, SpectrumRule } from './Glass'
+import { Orb, Rule, Surface } from './Surface'
 import { EASE, Pressable3D, Pulse, SPRING } from './motion'
 
 /* ── Tone context ────────────────────────────────────────────────────────── */
@@ -44,13 +42,12 @@ export function useTone() {
   return useContext(ToneCtx)
 }
 
-/* ── Micro label ─────────────────────────────────────────────────────────── */
+/* ── Labels ──────────────────────────────────────────────────────────────── */
 
 export function Label({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
   return <Text style={[T.micro, style]}>{children}</Text>
 }
 
-/** Section heading with a spectral rule beneath it. */
 export function SectionTitle({
   children,
   right,
@@ -63,16 +60,15 @@ export function SectionTitle({
   const t = useTone()
   return (
     <View style={[styles.sectionTitle, style]}>
-      <View style={{ flex: 1 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 }}>
+        <Rule width={16} height={3} color={t.accent} />
         <Text style={T.micro}>{children}</Text>
-        <SpectrumRule width={22} height={2.5} colors={t.grad} style={{ marginTop: 6 }} />
       </View>
       {right}
     </View>
   )
 }
 
-/* Legacy alias kept so older call sites keep compiling. */
 export const Press = Pressable3D
 
 /* ── Button ──────────────────────────────────────────────────────────────── */
@@ -80,9 +76,9 @@ export const Press = Pressable3D
 type ButtonVariant = 'primary' | 'accent' | 'quiet' | 'ghost' | 'danger'
 
 const SIZES = {
-  sm: { h: 38, px: 16, fs: 13, icon: 16, r: RADIUS.sm },
-  md: { h: 48, px: 20, fs: 14.5, icon: 18, r: RADIUS.md },
-  lg: { h: 56, px: 24, fs: 16, icon: 20, r: RADIUS.lg },
+  sm: { h: 38, px: 15, fs: 13, icon: 16, r: RADIUS.sm },
+  md: { h: 48, px: 19, fs: 14.5, icon: 18, r: RADIUS.md },
+  lg: { h: 54, px: 23, fs: 15.5, icon: 19, r: RADIUS.md },
 } as const
 
 export function Button({
@@ -107,81 +103,52 @@ export function Button({
   const t = useTone()
   const s = SIZES[size]
 
-  const gradient: [string, string] | null =
-    variant === 'primary' ? [C.ink2, C.ink]
-    : variant === 'accent' ? t.grad
-    : variant === 'danger' ? [C.threatLift, C.threat]
-    : null
+  const skin: ViewStyle =
+    variant === 'primary'
+      ? { backgroundColor: C.ink }
+      : variant === 'accent'
+        ? { backgroundColor: t.accent }
+        : variant === 'danger'
+          ? { backgroundColor: C.threat }
+          : variant === 'quiet'
+            ? {
+                backgroundColor: C.surface,
+                borderWidth: StyleSheet.hairlineWidth * 2,
+                borderColor: C.line2,
+              }
+            : { backgroundColor: 'transparent' }
 
   const fg =
-    variant === 'primary' || variant === 'accent' || variant === 'danger'
-      ? '#FFFFFF'
-      : variant === 'ghost'
-        ? C.ink2
-        : C.ink
-
-  const body = (
-    <View style={s2.btnInner(s)}>
-      {icon ? <Icon name={icon} size={s.icon} color={fg} strokeWidth={1.9} /> : null}
-      <Text style={{ fontFamily: F.semibold, fontSize: s.fs, color: fg, letterSpacing: -0.2 }}>
-        {children}
-      </Text>
-      {iconAfter ? <Icon name={iconAfter} size={s.icon} color={fg} strokeWidth={1.9} /> : null}
-    </View>
-  )
+    variant === 'primary' ? C.surface
+    : variant === 'accent' ? t.on
+    : variant === 'danger' ? '#FFFFFF'
+    : variant === 'ghost' ? C.ink2
+    : C.ink
 
   return (
-    <Pressable3D
-      onPress={onPress}
-      disabled={disabled}
-      style={[{ opacity: disabled ? 0.4 : 1 }, style]}
-    >
-      {gradient ? (
-        <View
-          style={{
+    <Pressable3D onPress={onPress} disabled={disabled} style={[{ opacity: disabled ? 0.4 : 1 }, style]}>
+      <View
+        style={[
+          {
             height: s.h,
+            paddingHorizontal: s.px,
             borderRadius: s.r,
-            overflow: 'hidden',
-            shadowColor: gradient[1],
-            shadowOpacity: 0.3,
-            shadowRadius: 16,
-            shadowOffset: { width: 0, height: 8 },
-            elevation: 6,
-          }}
-        >
-          <LinearGradient
-            colors={gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          {/* gloss */}
-          <LinearGradient
-            colors={[alpha('#FFFFFF', 0.32), 'transparent']}
-            style={[StyleSheet.absoluteFill, { height: '55%' }]}
-          />
-          {body}
-        </View>
-      ) : variant === 'ghost' ? (
-        <View style={{ height: s.h, borderRadius: s.r }}>{body}</View>
-      ) : (
-        <Glass variant="card" radius={s.r} style={{ height: s.h }}>
-          {body}
-        </Glass>
-      )}
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 9,
+          },
+          skin,
+        ]}
+      >
+        {icon ? <Icon name={icon} size={s.icon} color={fg} strokeWidth={2} /> : null}
+        <Text style={{ fontFamily: F.semibold, fontSize: s.fs, color: fg, letterSpacing: -0.2 }}>
+          {children}
+        </Text>
+        {iconAfter ? <Icon name={iconAfter} size={s.icon} color={fg} strokeWidth={2} /> : null}
+      </View>
     </Pressable3D>
   )
-}
-
-const s2 = {
-  btnInner: (s: (typeof SIZES)[keyof typeof SIZES]): ViewStyle => ({
-    height: s.h,
-    paddingHorizontal: s.px,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 9,
-  }),
 }
 
 export function IconButton({
@@ -189,22 +156,19 @@ export function IconButton({
   size = 20,
   color = C.ink2,
   onPress,
-  glass = true,
 }: {
   name: IconName
   size?: number
   color?: string
   onPress?: () => void
-  glass?: boolean
 }) {
-  const inner = (
-    <View style={{ height: 42, width: 42, alignItems: 'center', justifyContent: 'center' }}>
-      <Icon name={name} size={size} color={color} strokeWidth={1.8} />
-    </View>
-  )
   return (
     <Pressable3D onPress={onPress}>
-      {glass ? <Glass variant="card" radius={RADIUS.sm}>{inner}</Glass> : inner}
+      <Surface variant="flat" radius={RADIUS.sm}>
+        <View style={{ height: 42, width: 42, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name={name} size={size} color={color} strokeWidth={1.9} />
+        </View>
+      </Surface>
     </Pressable3D>
   )
 }
@@ -216,18 +180,18 @@ export function Panel({
   style,
   variant = 'card',
   edge,
+  edgeBar,
 }: {
   children?: ReactNode
   style?: StyleProp<ViewStyle>
-  variant?: 'card' | 'raised'
+  variant?: 'card' | 'raised' | 'flat'
   edge?: string
-  /** legacy no-op */
-  lit?: boolean
+  edgeBar?: boolean
 }) {
   return (
-    <Glass variant={variant} edge={edge} style={style}>
+    <Surface variant={variant} edge={edge} edgeBar={edgeBar} style={style}>
       {children}
-    </Glass>
+    </Surface>
   )
 }
 
@@ -244,8 +208,8 @@ export function PanelHeader({
   return (
     <View style={styles.panelHeader}>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <SpectrumRule width={14} height={2.5} colors={t.grad} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+          <Rule width={13} height={3} color={t.accent} />
           <Label>{title}</Label>
         </View>
         {hint ? (
@@ -270,38 +234,33 @@ export function Pill({
   children: ReactNode
   icon?: IconName
   tone?: 'neutral' | 'accent' | 'muted'
-  /** Filled gradient instead of a tinted wash. */
+  /** Saturated block instead of a pale tint. */
   solid?: boolean
 }) {
   const t = useTone()
 
-  if (solid) {
-    return (
-      <View style={styles.pillSolidWrap}>
-        <LinearGradient
-          colors={t.grad}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        {icon ? <Icon name={icon} size={12} color="#FFFFFF" strokeWidth={2} /> : null}
-        <Text style={styles.pillSolidText}>{children}</Text>
-      </View>
-    )
-  }
+  const bg =
+    solid ? t.accent
+    : tone === 'accent' ? t.tint
+    : tone === 'muted' ? C.surface3
+    : C.bg2
 
-  const skin =
-    tone === 'accent'
-      ? { borderColor: alpha(t.accent, 0.28), backgroundColor: t.soft }
-      : tone === 'muted'
-        ? { borderColor: C.line, backgroundColor: alpha(C.ink4, 0.09) }
-        : { borderColor: C.line, backgroundColor: C.glassSoft }
-  const fg = tone === 'accent' ? t.accent : tone === 'muted' ? C.ink3 : C.ink2
+  const fg =
+    solid ? t.on
+    : tone === 'accent' ? t.accent
+    : tone === 'muted' ? C.ink3
+    : C.ink2
 
   return (
-    <View style={[styles.pill, skin]}>
-      {icon ? <Icon name={icon} size={12} color={fg} strokeWidth={2} /> : null}
-      <Text style={{ fontFamily: F.semibold, fontSize: 11, lineHeight: 14, color: fg, letterSpacing: -0.1 }}>
+    <View
+      style={[
+        styles.pill,
+        { backgroundColor: bg },
+        !solid && tone === 'accent' && { borderColor: alpha(t.accent, 0.22), borderWidth: StyleSheet.hairlineWidth * 2 },
+      ]}
+    >
+      {icon ? <Icon name={icon} size={12} color={fg} strokeWidth={2.2} /> : null}
+      <Text style={{ fontFamily: F.semibold, fontSize: 11, lineHeight: 14, color: fg, letterSpacing: 0 }}>
         {children}
       </Text>
     </View>
@@ -322,10 +281,6 @@ export function LiveDot({ label, active = true }: { label?: string; active?: boo
             height: 7,
             borderRadius: 4,
             backgroundColor: active ? t.accent : C.ink4,
-            shadowColor: t.accent,
-            shadowOpacity: active ? 0.7 : 0,
-            shadowRadius: 5,
-            shadowOffset: { width: 0, height: 0 },
           }}
         />
       </View>
@@ -334,7 +289,7 @@ export function LiveDot({ label, active = true }: { label?: string; active?: boo
   )
 }
 
-/* ── Segmented control — sliding glass thumb ─────────────────────────────── */
+/* ── Segmented control ───────────────────────────────────────────────────── */
 
 export function Segmented<V extends string>({
   options,
@@ -347,11 +302,10 @@ export function Segmented<V extends string>({
   onChange: (v: V) => void
   style?: StyleProp<ViewStyle>
 }) {
-  const t = useTone()
   const [w, setW] = useState(0)
   const idx = Math.max(0, options.findIndex((o) => o.value === value))
   const x = useSharedValue(0)
-  const pad = 4
+  const pad = 3
   const cell = w > 0 ? (w - pad * 2) / options.length : 0
 
   useEffect(() => {
@@ -361,27 +315,9 @@ export function Segmented<V extends string>({
   const thumb = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }))
 
   return (
-    <View
-      style={[styles.segmented, style]}
-      onLayout={(e) => setW(e.nativeEvent.layout.width)}
-    >
+    <View style={[styles.segmented, style]} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
       {cell > 0 ? (
-        <Animated.View style={[styles.segmentedThumb, { width: cell }, thumb]}>
-          <LinearGradient
-            colors={[alpha('#FFFFFF', 0.98), alpha('#FFFFFF', 0.86)]}
-            style={StyleSheet.absoluteFill}
-          />
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                borderRadius: RADIUS.xs,
-                borderWidth: StyleSheet.hairlineWidth * 1.5,
-                borderColor: alpha(t.accent, 0.22),
-              },
-            ]}
-          />
-        </Animated.View>
+        <Animated.View style={[styles.segmentedThumb, { width: cell }, thumb]} />
       ) : null}
       {options.map((o) => (
         <Pressable
@@ -406,7 +342,7 @@ export function Segmented<V extends string>({
   )
 }
 
-/* ── Switch — gradient track, spring thumb ───────────────────────────────── */
+/* ── Switch ──────────────────────────────────────────────────────────────── */
 
 export function Switch({
   checked,
@@ -429,25 +365,12 @@ export function Switch({
   }))
 
   const thumbStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: interpolate(p.value, [0, 1], [3, 25]) },
-      { scale: interpolate(p.value, [0, 0.5, 1], [1, 1.08, 1]) },
-    ],
+    transform: [{ translateX: interpolate(p.value, [0, 1], [3, 24]) }],
   }))
-
-  const glowStyle = useAnimatedStyle(() => ({ opacity: p.value }))
 
   return (
     <Pressable onPress={() => onChange(!checked)} hitSlop={10}>
       <Animated.View style={[styles.switchTrack, trackStyle]}>
-        <Animated.View style={[StyleSheet.absoluteFill, glowStyle]}>
-          <LinearGradient
-            colors={t.grad}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[StyleSheet.absoluteFill, { borderRadius: 15 }]}
-          />
-        </Animated.View>
         <Animated.View style={[styles.switchThumb, thumbStyle]} />
       </Animated.View>
     </Pressable>
@@ -477,7 +400,7 @@ export function Row({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 14,
-        paddingHorizontal: 18,
+        paddingHorizontal: 17,
         paddingVertical: dense ? 12 : 16,
       }}
     >
@@ -502,7 +425,7 @@ export function Row({
 }
 
 export function Divider({ style }: { style?: StyleProp<ViewStyle> }) {
-  return <View style={[{ height: StyleSheet.hairlineWidth, backgroundColor: C.line }, style]} />
+  return <View style={[{ height: StyleSheet.hairlineWidth * 2, backgroundColor: C.line }, style]} />
 }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
@@ -519,9 +442,9 @@ export function Empty({
   const t = useTone()
   return (
     <View style={{ alignItems: 'center', paddingHorizontal: 32, paddingVertical: 60 }}>
-      <GradientOrb size={58} colors={t.grad} soft radius={20}>
-        <Icon name={icon} size={22} color={t.accent} strokeWidth={1.8} />
-      </GradientOrb>
+      <Orb size={54} color={t.accent} radius={RADIUS.md} soft>
+        <Icon name={icon} size={22} color={t.accent} strokeWidth={1.9} />
+      </Orb>
       <Text style={{ fontFamily: F.semibold, fontSize: 16, color: C.ink, marginTop: 18, letterSpacing: -0.3 }}>
         {title}
       </Text>
@@ -546,28 +469,19 @@ export function Empty({
 
 /* ── Progress bar ────────────────────────────────────────────────────────── */
 
-export function Bar({ value, height = 5 }: { value: number; height?: number }) {
+export function Bar({ value, height = 6 }: { value: number; height?: number }) {
   const t = useTone()
   const p = useSharedValue(0)
 
   useEffect(() => {
-    p.value = withTiming(Math.min(1, Math.max(0, value)), { duration: 900, easing: EASE.outExpo })
+    p.value = withTiming(Math.min(1, Math.max(0, value)), { duration: 800, easing: EASE.outExpo })
   }, [value, p])
 
   const fill = useAnimatedStyle(() => ({ width: `${p.value * 100}%` }))
 
   return (
-    <View
-      style={{ height, borderRadius: height / 2, backgroundColor: C.surface3, overflow: 'hidden' }}
-    >
-      <Animated.View style={[{ height: '100%', borderRadius: height / 2, overflow: 'hidden' }, fill]}>
-        <LinearGradient
-          colors={t.grad}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
+    <View style={{ height, backgroundColor: C.surface3, overflow: 'hidden' }}>
+      <Animated.View style={[{ height: '100%', backgroundColor: t.accent }, fill]} />
     </View>
   )
 }
@@ -575,7 +489,7 @@ export function Bar({ value, height = 5 }: { value: number; height?: number }) {
 const styles = StyleSheet.create({
   sectionTitle: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
     paddingHorizontal: 22,
@@ -586,7 +500,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    paddingHorizontal: 18,
+    paddingHorizontal: 17,
     paddingTop: 16,
     paddingBottom: 12,
   },
@@ -600,64 +514,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    borderWidth: StyleSheet.hairlineWidth * 1.5,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 10,
+    borderRadius: RADIUS.xs,
+    paddingHorizontal: 9,
     paddingVertical: 5,
-  },
-  pillSolidWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 11,
-    paddingVertical: 5.5,
-    overflow: 'hidden',
-  },
-  pillSolidText: {
-    fontFamily: F.semibold,
-    fontSize: 11,
-    lineHeight: 14,
-    color: '#FFFFFF',
-    letterSpacing: -0.1,
   },
   segmented: {
     flexDirection: 'row',
-    borderWidth: StyleSheet.hairlineWidth * 1.5,
-    borderColor: C.line,
-    backgroundColor: alpha(C.ink, 0.045),
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderColor: C.line2,
+    backgroundColor: C.bg2,
     borderRadius: RADIUS.sm,
-    padding: 4,
+    padding: 3,
   },
   segmentedThumb: {
     position: 'absolute',
-    top: 4,
-    bottom: 4,
-    left: 4,
+    top: 3,
+    bottom: 3,
+    left: 3,
     borderRadius: RADIUS.xs,
-    overflow: 'hidden',
-    shadowColor: '#1B2559',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    backgroundColor: C.surface,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderColor: C.line2,
   },
   switchTrack: {
-    width: 50,
-    height: 30,
-    borderRadius: 15,
+    width: 48,
+    height: 28,
+    borderRadius: RADIUS.xs,
     justifyContent: 'center',
-    overflow: 'hidden',
   },
   switchThumb: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: 3,
     backgroundColor: '#FFFFFF',
-    shadowColor: '#1B2559',
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
   },
 })

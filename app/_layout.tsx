@@ -16,7 +16,6 @@ import {
   JetBrainsMono_500Medium,
   JetBrainsMono_600SemiBold,
 } from '@expo-google-fonts/jetbrains-mono'
-import { Aurora } from '@/components/Aurora'
 import { C } from '@/lib/colors'
 import { startTelemetry } from '@/engine/store'
 
@@ -50,9 +49,8 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="dark" />
         <View style={{ flex: 1, backgroundColor: C.bg }}>
-          {/* One aurora field for the whole app — every glass surface above
-              blurs this, so screens never paint their own background. */}
-          <Aurora />
+          {/* Solid stone ground for the whole app — screens never paint their
+              own background, so white cards read consistently against it. */}
           <ThemeProvider value={GLASS_NAV_THEME}>
             <Stack
               screenOptions={{

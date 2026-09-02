@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import { Label, LiveDot, Panel, PanelHeader, Tone } from '@/components/ui'
-import { Glass, SpectrumRule } from '@/components/Glass'
+import { Surface, Rule } from '@/components/Surface'
 import { Parallax, Pressable3D, Reveal, ScrollReveal, Stagger } from '@/components/motion'
 import { Icon } from '@/components/Icon'
 import { Gauge, Spectrum, Trace } from '@/components/viz'
@@ -64,10 +64,10 @@ export default function SensorsScreen() {
         <View style={[s.navWrap, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
           <Reveal kind="down" duration={560}>
             <Pressable3D onPress={() => { tap(); router.back() }}>
-              <Glass variant="card" radius={RADIUS.pill} style={s.backBtn}>
+              <Surface variant="card" radius={RADIUS.pill} style={s.backBtn}>
                 <Icon name="arrow-left" size={18} color={C.ink} strokeWidth={2} />
                 <Text style={s.backText}>Shield</Text>
-              </Glass>
+              </Surface>
             </Pressable3D>
           </Reveal>
         </View>
@@ -85,7 +85,7 @@ export default function SensorsScreen() {
             <Reveal kind="up" duration={700}>
               <Text style={s.h1}>Sensors</Text>
               <View style={s.titleMeta}>
-                <SpectrumRule width={20} height={2.5} />
+                <Rule width={20} height={2.5} />
                 <LiveDot label={scanning ? '500 MS CADENCE' : 'PAUSED'} active={scanning} />
               </View>
             </Reveal>

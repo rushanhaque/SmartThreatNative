@@ -1,6 +1,6 @@
-/* Port of src/components/Brand.tsx — the aperture mark. */
+/* Aperture mark — one flat ink, no gradient fill. */
 
-import Svg, { Circle, Defs, Line, LinearGradient, Stop, G } from 'react-native-svg'
+import Svg, { Circle, Line, G } from 'react-native-svg'
 import { C } from '@/lib/colors'
 
 /* Blade endpoints are trigonometry rather than SVG `rotation`/`origin` props:
@@ -13,26 +13,19 @@ const BLADES = [0, 60, 120, 180, 240, 300].map((deg) => {
 })
 
 export function Logomark({ size = 28, active = false }: { size?: number; active?: boolean }) {
-  const stroke = active ? 'url(#lm-iris)' : C.ink2
+  const stroke = active ? C.klein : C.ink2
   return (
     <Svg width={size} height={size} viewBox="0 0 28 28" fill="none">
-      <Defs>
-        <LinearGradient id="lm-iris" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={C.irisA} />
-          <Stop offset="0.5" stopColor={C.irisB} />
-          <Stop offset="1" stopColor={C.irisC} />
-        </LinearGradient>
-      </Defs>
       <Circle
         cx="14"
         cy="14"
         r="11.6"
         stroke={stroke}
-        strokeWidth="1.5"
-        opacity={active ? 1 : 0.34}
+        strokeWidth="1.8"
+        opacity={active ? 1 : 0.4}
         fill="none"
       />
-      <G stroke={stroke} strokeWidth="1.7" strokeLinecap="round">
+      <G stroke={stroke} strokeWidth="1.9" strokeLinecap="butt">
         {BLADES.map((b) => (
           <Line
             key={b.deg}
@@ -45,7 +38,7 @@ export function Logomark({ size = 28, active = false }: { size?: number; active?
           />
         ))}
       </G>
-      <Circle cx="14" cy="14" r="3.1" stroke={C.ink2} strokeWidth="1.5" opacity={0.9} fill="none" />
+      <Circle cx="14" cy="14" r="3.1" stroke={stroke} strokeWidth="1.8" opacity={0.95} fill="none" />
     </Svg>
   )
 }

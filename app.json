@@ -5,14 +5,14 @@
     "version": "1.0.0",
     "scheme": "smartthreat",
     "orientation": "portrait",
-    "backgroundColor": "#F5F7FD",
+    "backgroundColor": "#ECECE4",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F5F7FD"
+      "backgroundColor": "#ECECE4"
     },
     "ios": {
       "supportsTablet": false,
@@ -23,7 +23,7 @@
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F5F7FD"
+        "backgroundColor": "#ECECE4"
       }
     },
     "web": {

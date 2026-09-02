@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import { Empty, Label, Panel, PanelHeader, Pill, Tone } from '@/components/ui'
-import { Glass, GradientOrb, SpectrumRule } from '@/components/Glass'
+import { Surface, Orb, Rule } from '@/components/Surface'
 import { Parallax, Pressable3D, Reveal, ScrollReveal, Stagger } from '@/components/motion'
 import { Icon } from '@/components/Icon'
 import { Series, SignalBars } from '@/components/viz'
@@ -59,10 +59,10 @@ export default function DeviceDetail() {
         <View style={[s.navWrap, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
           <Reveal kind="down" duration={560}>
             <Pressable3D onPress={() => { tap(); router.back() }}>
-              <Glass variant="card" radius={RADIUS.pill} style={s.backBtn}>
+              <Surface variant="card" radius={RADIUS.pill} style={s.backBtn}>
                 <Icon name="arrow-left" size={18} color={C.ink} strokeWidth={2} />
                 <Text style={s.backText}>Devices</Text>
-              </Glass>
+              </Surface>
             </Pressable3D>
           </Reveal>
         </View>
@@ -79,14 +79,14 @@ export default function DeviceDetail() {
           {/* ── Hero ────────────────────────────────────────────── */}
           <Parallax scrollY={scrollY} speed={0.24} fade={260} style={s.hero}>
             <Reveal kind="scale" duration={760}>
-              <GradientOrb size={76} radius={26} colors={tk.grad}>
+              <Orb size={76} radius={26} color={tk.accent}>
                 <Icon name={KIND_ICON[device.kind]} size={32} color="#FFFFFF" strokeWidth={1.9} />
-              </GradientOrb>
+              </Orb>
             </Reveal>
             <Reveal kind="up" delay={140} duration={700}>
               <Text style={s.title} numberOfLines={2}>{device.label ?? device.vendor}</Text>
               <View style={s.subRow}>
-                <SpectrumRule width={16} height={2.5} colors={tk.grad} />
+                <Rule width={16} height={2.5} color={tk.accent} />
                 <Text style={[s.subText, { color: tk.accent }]}>{KIND_LABEL[device.kind]}</Text>
               </View>
               <View style={s.macRow}>

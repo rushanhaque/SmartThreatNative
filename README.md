@@ -10,28 +10,27 @@ Built with Expo SDK 54, Expo Router 6, and React Native Reanimated 4.
 
 ## Design
 
-**Aurora Glass** — a bright, high-chroma light theme.
+**Spot Ink** — a flat, high-contrast light theme built like a risograph print.
 
-A single animated aurora field is mounted once at the root; every surface above it
-is real backdrop-blurred glass, so the colour underneath reads through the whole
-interface. Glass is composed as four layers rather than one translucent fill:
-
-1. backdrop blur of whatever sits behind
-2. a tinted wash so text keeps contrast over any hue
-3. a specular sweep across the top-left shoulder
-4. a rim hairline that catches light on one edge
+There are no gradients in this app. A stone-paper ground, pure-white cards, and
+a handful of saturated spot inks that are never blended into one another. Depth
+comes from hairlines, flat tint blocks and one honest shadow — the way print
+does it. Colour carries meaning, so if two things look different, they are.
 
 | Role | Colour |
 | --- | --- |
-| Canvas | `#F5F7FD` porcelain |
-| Ink | `#0B1024` deep navy |
-| Safe | `#00A87A` emerald |
-| Caution | `#F0930B` amber |
-| Threat | `#F5285B` rose |
-| Brand spectrum | `#7C5CFC` → `#00BFE7` → `#FF4D8D` |
+| Ground | `#ECECE4` stone paper |
+| Card | `#FFFFFF` |
+| Ink | `#14140E` near-black, green cast |
+| Safe | `#0B7A5A` deep jade |
+| Caution | `#C67100` burnt amber (takes dark text, not white) |
+| Threat | `#D62F1C` vermillion |
+| Brand | `#1F23C9` Klein blue |
 
 Threat state is carried by a React context (`<Tone>`) rather than a CSS cascade —
-wrapping a subtree re-themes every accent, gradient and glow inside it.
+wrapping a subtree re-themes every accent inside it. Each tone resolves to a
+single ink plus the text colour that belongs on it, which is why amber pairs
+with dark text where jade and vermillion pair with white.
 
 ## Motion
 
