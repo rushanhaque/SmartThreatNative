@@ -11,6 +11,7 @@ import { ApertureRing } from '@/components/ApertureRing'
 import { EvidenceStack, Sparkline } from '@/components/viz'
 import { Bar, Button, Label, LiveDot, Panel, PanelHeader, Pill, Row, SectionTitle, Tone } from '@/components/ui'
 import { Surface, Orb, Rule } from '@/components/Surface'
+import { Material } from '@/components/Material'
 import { Counter, Float, Parallax, Pressable3D, Reveal, ScrollReveal, Stagger } from '@/components/motion'
 import { Icon, type IconName } from '@/components/Icon'
 import { Logomark } from '@/components/Brand'
@@ -19,7 +20,7 @@ import { CLASS_META } from '@/engine/fusion'
 import { SCENARIOS } from '@/engine/simulator'
 import type { FusionChannel, Reason } from '@/engine/types'
 import { pct } from '@/lib/format'
-import { C, RADIUS, TONES, alpha } from '@/lib/colors'
+import { C, RADIUS, SHADOW, TONES, alpha } from '@/lib/colors'
 import { F, T } from '@/lib/type'
 
 const AScroll = Animated.createAnimatedComponent(ScrollView)
@@ -93,10 +94,12 @@ export default function ShieldScreen() {
   return (
     <Tone value={verdict.klass}>
       <View style={s.root}>
-        {/* ── Floating glass header ─────────────────────────────────── */}
+        {/* ── Floating glass header ───────────────────────────────────
+            Real material, not a white card: content blurs beneath it as the
+            page scrolls, which is what makes it read as floating chrome. */}
         <View style={[s.headerWrap, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
           <Reveal kind="down" duration={640}>
-            <Surface variant="card" radius={RADIUS.lg} style={s.header}>
+            <Material kind="regular" radius={RADIUS.lg} style={s.header}>
               <View style={s.headerRow}>
                 <Logomark size={24} active />
                 <View style={s.headerMid}>
@@ -108,7 +111,7 @@ export default function ShieldScreen() {
                   <Text style={s.batteryText}>{hw.batteryPct}%</Text>
                 </View>
               </View>
-            </Surface>
+            </Material>
           </Reveal>
         </View>
 
@@ -139,6 +142,9 @@ export default function ShieldScreen() {
               </Float>
             </Reveal>
 
+            {/* Primary action sits on the hero's centre line, with the
+                secondary control stacked beneath it rather than beside it —
+                a square pause button alongside pushed "Deep scan" off centre. */}
             <Reveal kind="up" delay={280} duration={760} style={s.actions}>
               <Button
                 size="lg"
@@ -146,26 +152,28 @@ export default function ShieldScreen() {
                 icon={deepScan.running ? 'scan' : 'target'}
                 disabled={deepScan.running}
                 onPress={onDeepScan}
-                style={{ flex: 1 }}
+                style={s.primaryAction}
               >
                 {deepScan.running
                   ? `Sweeping ${Math.round(deepScan.progress * 100)}%`
                   : 'Deep scan'}
               </Button>
-              <Button
-                size="lg"
-                variant="quiet"
-                icon={prefs.scanning ? 'pause' : 'play'}
-                onPress={() => { tap(); actions.toggleScanning() }}
-                accessibilityLabel={prefs.scanning ? 'Pause scanning' : 'Resume scanning'}
-              />
-            </Reveal>
 
-            {deepScan.running ? (
-              <View style={s.scanBar}>
-                <Bar value={deepScan.progress} height={4} />
-              </View>
-            ) : null}
+              {deepScan.running ? (
+                <View style={s.scanBar}>
+                  <Bar value={deepScan.progress} height={4} />
+                </View>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={prefs.scanning ? 'pause' : 'play'}
+                  onPress={() => { tap(); actions.toggleScanning() }}
+                >
+                  {prefs.scanning ? 'Pause scanning' : 'Resume scanning'}
+                </Button>
+              )}
+            </Reveal>
           </Parallax>
 
           <Stagger base={120} step={80}>
@@ -241,7 +249,7 @@ export default function ShieldScreen() {
                 <Row
                   onPress={() => { tap(); router.push('/devices') }}
                   icon={
-                    <Orb size={42} color={C.klein}>
+                    <Orb size={42} color={C.indigo}>
                       <Icon name="radio" size={19} color="#FFFFFF" strokeWidth={2} />
                     </Orb>
                   }
@@ -371,15 +379,22 @@ const s = StyleSheet.create({
     zIndex: 20,
     paddingHorizontal: 16,
   },
-  header: { paddingHorizontal: 14, paddingVertical: 11 },
+  header: {
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderColor: alpha('#FFFFFF', 0.55),
+    ...SHADOW.card,
+  },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerMid: { flex: 1, minWidth: 0, gap: 3 },
   headerPlace: { fontFamily: F.semibold, fontSize: 14, color: C.ink, letterSpacing: -0.25 },
   battery: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   batteryText: { fontFamily: F.monoSemi, fontSize: 11.5, color: C.ink2 },
 
-  actions: { flexDirection: 'row', gap: 10, marginTop: 24, alignSelf: 'stretch' },
-  scanBar: { marginTop: 14, alignSelf: 'stretch' },
+  actions: { marginTop: 26, alignSelf: 'stretch', alignItems: 'center', gap: 10 },
+  primaryAction: { alignSelf: 'stretch', maxWidth: 340 },
+  scanBar: { alignSelf: 'stretch', maxWidth: 340, marginTop: 6 },
   hero: { alignItems: 'center', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 30 },
   score: {
     fontFamily: F.semibold,

@@ -25,11 +25,14 @@ const ANDROID = Platform.OS === 'android'
 /** Mirrors UIBlurEffect.Style — thin floats, regular is the default chrome. */
 export type MaterialKind = 'ultraThin' | 'thin' | 'regular' | 'thick'
 
+/* Tint is deliberately low. A material's job is to let you *see* the content
+   moving underneath while keeping text legible — push the tint much past these
+   values and it stops being glass and becomes a frosted white card. */
 const KIND = {
-  ultraThin: { intensity: 22, tint: 0.42 },
-  thin:      { intensity: 40, tint: 0.5 },
-  regular:   { intensity: 62, tint: 0.62 },
-  thick:     { intensity: 86, tint: 0.76 },
+  ultraThin: { intensity: 26, tint: 0.30 },
+  thin:      { intensity: 46, tint: 0.38 },
+  regular:   { intensity: 72, tint: 0.46 },
+  thick:     { intensity: 96, tint: 0.62 },
 } as const
 
 export const Material = memo(function Material({

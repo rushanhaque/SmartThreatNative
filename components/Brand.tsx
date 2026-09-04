@@ -13,7 +13,7 @@ const BLADES = [0, 60, 120, 180, 240, 300].map((deg) => {
 })
 
 export function Logomark({ size = 28, active = false }: { size?: number; active?: boolean }) {
-  const stroke = active ? C.klein : C.ink2
+  const stroke = active ? C.indigo : C.ink2
   return (
     <Svg width={size} height={size} viewBox="0 0 28 28" fill="none">
       <Circle

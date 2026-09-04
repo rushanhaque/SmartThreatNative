@@ -19,8 +19,8 @@ const tap = () => Haptics.selectionAsync().catch(() => {})
 const ALERT_ROWS: Array<{
   id: AlertChannel; title: string; icon: IconName; accent: string
 }> = [
-  { id: 'oled',   title: 'Lens display',      icon: 'glasses', accent: C.klein },
-  { id: 'haptic', title: 'Temple haptics',    icon: 'waves',   accent: C.klein   },
+  { id: 'oled',   title: 'Lens display',      icon: 'glasses', accent: C.indigo },
+  { id: 'haptic', title: 'Temple haptics',    icon: 'waves',   accent: C.indigo   },
   { id: 'buzzer', title: 'Buzzer',            icon: 'bell',    accent: C.safe   },
   { id: 'push',   title: 'Phone notification', icon: 'bolt',   accent: C.threat },
 ]
@@ -173,10 +173,10 @@ export default function SettingsScreen() {
                         onPress={() => { tap(); actions.setScenario(sc.id) }}
                       >
                         <View style={[s.row, i < SCENARIOS.length - 1 && s.rowBorder]}>
-                          <View style={[s.radio, on && { borderColor: C.klein }]}>
+                          <View style={[s.radio, on && { borderColor: C.indigo }]}>
                             {on && <View style={s.radioDot} />}
                           </View>
-                          <Text style={[s.rowTitle, s.rowTitleWide, on && { color: C.klein }]}>
+                          <Text style={[s.rowTitle, s.rowTitleWide, on && { color: C.indigo }]}>
                             {sc.name}
                           </Text>
                           {on && <Rule width={16} height={2.5} />}
@@ -273,5 +273,5 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: C.klein },
+  radioDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: C.indigo },
 })

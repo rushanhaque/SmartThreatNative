@@ -386,7 +386,7 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   chipOn: { borderColor: 'transparent' },
-  chipFill: { backgroundColor: C.klein, borderRadius: RADIUS.pill },
+  chipFill: { backgroundColor: C.indigo, borderRadius: RADIUS.pill },
   chipText: { fontFamily: F.semibold, fontSize: 12.5, letterSpacing: -0.1 },
 
   section: { paddingHorizontal: 16, marginBottom: 14 },

@@ -123,7 +123,7 @@ function TabItem({
   }))
 
   const labelStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(p.value, [0, 1], [C.ink3, C.klein]),
+    color: interpolateColor(p.value, [0, 1], [C.ink3, C.indigo]),
   }))
 
   return (
@@ -132,7 +132,7 @@ function TabItem({
         <Icon
           name={ICONS[routeName] ?? 'shield'}
           size={21}
-          color={focused ? C.klein : C.ink3}
+          color={focused ? C.indigo : C.ink3}
           strokeWidth={focused ? 2.2 : 1.7}
         />
       </Animated.View>
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   bar: {
     borderRadius: RADIUS.lg,
     borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: C.line2,
+    borderColor: alpha('#FFFFFF', 0.55),
     overflow: 'hidden',
     ...SHADOW.lift,
   },
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     top: 6,
     bottom: 6,
     borderRadius: RADIUS.sm,
-    backgroundColor: alpha(C.klein, 0.09),
+    backgroundColor: alpha(C.indigo, 0.09),
     overflow: 'hidden',
   },
   blockRule: {
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     left: '26%',
     right: '26%',
     height: 3,
-    backgroundColor: C.klein,
+    backgroundColor: C.indigo,
   },
   item: {
     flex: 1,

@@ -81,7 +81,7 @@ export const Surface = memo(function Surface({
 export function Rule({
   width = 22,
   height = 3,
-  color = C.klein,
+  color = C.indigo,
   style,
 }: {
   width?: number

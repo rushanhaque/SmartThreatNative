@@ -212,8 +212,8 @@ export default function HistoryScreen() {
             >
               <Panel>
                 <View style={s.privacyRow}>
-                  <Orb size={38} radius={13} color={C.klein} soft>
-                    <Icon name="lock" size={17} color={C.klein} strokeWidth={2} />
+                  <Orb size={38} radius={13} color={C.indigo} soft>
+                    <Icon name="lock" size={17} color={C.indigo} strokeWidth={2} />
                   </Orb>
                   <Text style={s.privacyTitle}>Nothing here has left your phone</Text>
                 </View>
